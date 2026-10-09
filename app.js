@@ -92,12 +92,13 @@ $('#pt').innerHTML=[['Strategic partnership','For organisations interested in lo
 $('#pp').innerHTML=PARTNERS.map(p=>`<div class="cell" style="border-color:rgba(255,255,255,.25)"><h3>${p.name}</h3><p>${p.note}</p><a class="btn" href="${p.url}" target="_blank" rel="noopener noreferrer">Visit partner website</a></div>`).join('');
 $('#gi').innerHTML=INV.map(([a,b])=>`<div class="cell"><h3>${a}</h3><p>${b}</p></div>`).join('');
 document.addEventListener('click',e=>{const a=e.target.closest('[data-type]');if(a)[...$('#ft').options].forEach(o=>{if(o.text==a.dataset.type)o.selected=true})});
-const FORMSPREE_ENDPOINT="";/* paste the Formspree endpoint here */
-$('#f').onsubmit=async e=>{e.preventDefault();const f=e.target;let bad=0;const chk=(n,ok,msg)=>{const x=$('#e-'+n);x.textContent=ok?'':msg;f[n].setAttribute('aria-invalid',!ok);if(!ok&&!bad)f[n].focus();if(!ok)bad=1};
- chk('n',f.n.value.trim(),'Please enter your name.');chk('e',/^\S+@\S+\.\S+$/.test(f.e.value),'Please enter a valid email address.');chk('s',f.s.value.trim(),'Please add a subject.');chk('m',f.m.value.trim().length>9,'Please write at least 10 characters.');chk('w',!f.w.value||/^https:\/\//.test(f.w.value),'Links must start with https://');chk('c',f.c.checked,'Please give your consent so ASA Kenya can respond.');
- if(bad)return;const ok=$('#ok');ok.style.display='block';
- if(!FORMSPREE_ENDPOINT){ok.textContent='The online submission form is being connected. Please check back soon.';return}
- try{const r=await fetch(FORMSPREE_ENDPOINT,{method:'POST',headers:{Accept:'application/json'},body:new FormData(f)});ok.textContent=r.ok?'Thank you. Your message has been sent for review.':'Something went wrong. Please email contact.asakenya@gmail.com.';if(r.ok)f.reset()}catch(x){ok.textContent='Network error. Please try again or email contact.asakenya@gmail.com.'}};
+const FORMSPREE_ENDPOINT="https://formspree.io/f/mbgdoblk";
+$('#f').onsubmit=async e=>{e.preventDefault();const f=e.target,F=f.elements;let bad=0;const chk=(n,ok,msg)=>{const x=$('#e-'+n);x.textContent=ok?'':msg;F[n].setAttribute('aria-invalid',!ok);if(!ok&&!bad)F[n].focus();if(!ok)bad=1};
+ chk('name',F['name'].value.trim(),'Please enter your name.');chk('email',/^\S+@\S+\.\S+$/.test(F['email'].value),'Please enter a valid email address.');chk('subject',F['subject'].value.trim(),'Please add a subject.');chk('message',F['message'].value.trim().length>9,'Please write at least 10 characters.');chk('website',!F['website'].value||/^https:\/\//.test(F['website'].value),'Links must start with https://');chk('consent',F['consent'].checked,'Please give your consent so ASA Kenya can respond.');
+ if(bad)return;const ok=$('#ok'),btn=f.querySelector('button[type=submit]');if(btn.disabled)return;ok.style.display='block';
+ F['_subject'].value='ASA Kenya website: '+F['type'].value+' - '+F['subject'].value.trim();
+ btn.disabled=true;ok.textContent='Sending...';
+ try{const r=await fetch(FORMSPREE_ENDPOINT,{method:'POST',headers:{Accept:'application/json'},body:new FormData(f)});ok.textContent=r.ok?'Thank you. Your message has been sent for review.':'Something went wrong. Please email contact.asakenya@gmail.com.';if(r.ok)f.reset()}catch(x){ok.textContent='Network error. Please try again or email contact.asakenya@gmail.com.'}finally{btn.disabled=false}};
 /* MAP */
 (function(){const hlt=(sl,on)=>{const l=document.querySelector('.cn[data-s="'+sl+'"]');if(l)l.classList.toggle('hl',on)};const P=[[34.0,4.2],[34.6,3.4],[34.9,1.9],[34.2,1.0],[34.4,.4],[34.0,.1],[33.9,-1],[37.6,-3.5],[37.7,-3.1],[39.2,-4.6],[39.8,-3.4],[40.2,-2.7],[40.9,-2.3],[41.5,-1.7],[41,-.9],[41,2.8],[41.9,3.98],[41,3.9],[39.8,3.9],[39,3.9],[38.1,3.6],[36.9,4.4],[35.9,4.6]];
  const X=l=>(l[0]-33.4)*48,Y=l=>(5.3-l[1])*48;let s='';for(let i=0;i<=420;i+=30)s+=`<line class="gr" x1="${i}" y1="0" x2="${i}" y2="470"/><line class="gr" x1="0" y1="${i}" x2="420" y2="${i}"/>`;
