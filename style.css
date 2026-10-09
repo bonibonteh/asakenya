@@ -160,3 +160,12 @@ html.lenis,html.lenis body{height:auto}.lenis.lenis-smooth{scroll-behavior:auto!
 .prof .plogo{float:right;margin:0 0 8px 12px;border-color:#8EDBA6}
 .assoc :focus-visible,.arc .btn:focus-visible{outline:3px solid var(--earth);outline-offset:2px}
 @media(max-width:480px){.arc{flex-direction:column}}
+
+/* Event programme timeline */
+.pgm{margin:18px 0 6px;max-width:560px}.pgm h4{margin:0 0 4px;font:800 1.1rem var(--d)}
+.pgm ol{list-style:none;margin:10px 0 0;padding:0 0 0 18px;border-left:2px solid var(--earth)}
+.pgm li{position:relative;display:grid;grid-template-columns:9.5em 1fr;gap:4px 14px;padding:7px 0;font:500 .95rem var(--d)}
+.pgm li::before{content:"";position:absolute;left:-24px;top:.95em;width:10px;height:10px;border-radius:50%;background:var(--earth)}
+.pgm time{font-weight:700;white-space:nowrap}
+@media(max-width:480px){.pgm li{grid-template-columns:1fr;gap:0}}
+.pics img[src*="launch-programme"]{width:min(360px,100%)}
