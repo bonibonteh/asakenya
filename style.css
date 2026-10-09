@@ -169,3 +169,6 @@ html.lenis,html.lenis body{height:auto}.lenis.lenis-smooth{scroll-behavior:auto!
 .pgm time{font-weight:700;white-space:nowrap}
 @media(max-width:480px){.pgm li{grid-template-columns:1fr;gap:0}}
 .pics img[src*="launch-programme"]{width:min(360px,100%)}
+
+/* Executive council photo cards */
+.xc{display:block;width:100%;height:auto;aspect-ratio:3/5;object-fit:contain;background:#fff;border:1px solid var(--line);margin:0 0 16px}
