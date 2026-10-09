@@ -172,3 +172,4 @@ html.lenis,html.lenis body{height:auto}.lenis.lenis-smooth{scroll-behavior:auto!
 
 /* Executive council photo cards */
 .xc{display:block;width:100%;height:auto;aspect-ratio:3/5;object-fit:contain;background:#fff;border:1px solid var(--line);margin:0 0 16px}
+.cell>.xc:only-child{margin:0}
