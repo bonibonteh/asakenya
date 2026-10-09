@@ -174,8 +174,8 @@ const SOCIAL=[
  {n:'WhatsApp',label:'Chat with ASA Kenya on WhatsApp',url:'',svg:'<path d="M12 3.500a8.500 8.500 0 0 0-7.300 12.800L3.500 20.500l4.300-1.100A8.500 8.500 0 1 0 12 3.500z"/><path d="M9 8.800c0 3 2.200 5.500 5.700 6.200l1-1.300-2-1-.9.800c-1-.4-1.800-1.200-2.200-2.200l.8-.9-1-2z"/>'}
 ];
 function socHtml(m,who){return SOCIAL.filter(x=>/^https:\/\//.test(m[x.n]||'')).map(x=>`<a href="${m[x.n]}" target="_blank" rel="noopener noreferrer" aria-label="Follow ${who} on ${x.n}" title="${x.n}"><svg viewBox="0 0 24 24" aria-hidden="true">${x.svg}</svg></a>`).join('')}
-const TUK=ASSOCIATIONS.find(a=>a.slug=='asa-tuk');
-$('#tq').innerHTML='<b>ASA TUK quick access</b>'+Object.entries(TUK.links).map(([k,u])=>`<a class="btn o" href="${u}" target="_blank" rel="noopener noreferrer">ASA TUK: ${k}</a>`).join('');
+const ASAK_LINKS={'Join the ASA Kenya network':'https://asakenya.netlify.app/#contact'};
+$('#tq').innerHTML='<b>ASA Kenya quick access</b>'+Object.entries(ASAK_LINKS).map(([k,u])=>`<a class="btn o" href="${u}" target="_blank" rel="noopener noreferrer">${k}</a>`).join('');
 $('#soc').innerHTML=SOCIAL.filter(x=>/^https:\/\//.test(x.url)).map(x=>`<a href="${x.url}" target="_blank" rel="noopener noreferrer" aria-label="${x.label}" title="${x.n}"><svg viewBox="0 0 24 24" aria-hidden="true">${x.svg}</svg></a>`).join('');
 if('IntersectionObserver'in window){const rio=new IntersectionObserver((en,o)=>en.forEach(x=>{if(x.isIntersecting){x.target.classList.add('in');o.unobserve(x.target)}}),{threshold:.08});
  const tagRv=()=>document.querySelectorAll('main>section:not(#hero):not(#tick) :is(h2,.sub,.cell,.stat,.item,.prof,.empty,.two>*,.case,.flow,.list):not(.rv):not(.tile)').forEach((e,i)=>{e.classList.add('rv');e.style.setProperty('--d',(i%6)*70+'ms');rio.observe(e)});
