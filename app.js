@@ -4,7 +4,6 @@ const ASSOCIATIONS=[
  {slug:'asa-uon',short:'ASA UoN',uni:'University of Nairobi',city:'Nairobi',ll:[36.82,-1.29],off:[-70,28],pres:'Mary Thenge',email:'asauonofficial@gmail.com',ig:'@asa_uon'},
  {slug:'asa-ku',short:'ASA KU',uni:'Kenyatta University',city:'Nairobi town',ll:[36.82,-1.29],off:[-10,68],pres:'Hussein Sudi'},
  {slug:'asa-jkuat',short:'ASA JKUAT',uni:'Jomo Kenyatta University of Agriculture and Technology',city:'Kiambu',ll:[36.82,-1.29],off:[62,30],pres:'Joy Kingori'},
- {slug:'nit',short:'Member',uni:'Member university — details to be confirmed',city:'Nairobi town',ll:[36.82,-1.29],off:[30,-66],pres:null,nm:true},
  {slug:'asa-tum',short:'ASA TUM',uni:'Technical University of Mombasa',city:'Mombasa',ll:[39.67,-4.05],off:[0,0],pres:'Beavan Bwire'}
 ].map(a=>({...a,status:'approved'}));
 const EXEC=[['President','Mary Thenge','University of Nairobi'],['Vice President','Bonface Oino','Technical University of Kenya'],['Secretary General','Bwire Bevan','Technical University of Mombasa'],['Deputy Secretary General','Clara Kamau','Kenyatta University'],['Treasurer','Laban Ombaso','Technical University of Mombasa'],['Welfare Director','Hussein Sudi','Kenyatta University'],['Events Director','Joy Too','Technical University of Kenya'],['Media Strategist','Sharon Micheni','Jomo Kenyatta University of Agriculture and Technology']];
@@ -119,7 +118,7 @@ $('#st').innerHTML=STATS.map(s=>s.ok?`<div class="stat"><b data-n="${s.v}">0</b>
 const RM=matchMedia('(prefers-reduced-motion:reduce)').matches;
 new IntersectionObserver((en,o)=>en.forEach(x=>{if(!x.isIntersecting)return;const b=x.target,n=+b.dataset.n;if(RM){b.textContent=n;return}let i=0;const t=setInterval(()=>{b.textContent=++i;if(i>=n)clearInterval(t)},160);o.unobserve(b)})).observe&&document.querySelectorAll('[data-n]').forEach(b=>{new IntersectionObserver((en,o)=>en.forEach(x=>{if(x.isIntersecting){o.unobserve(b);if(RM){b.textContent=b.dataset.n;return}let i=0;const t=setInterval(()=>{b.textContent=++i;if(i>=+b.dataset.n)clearInterval(t)},160)}})).observe(b)});
 /* 3D HERO: lines > drawings > structure > buildings > city > network */
-const STG=[['Lines','Every building starts as a line on paper.'],['Drawings','Lines become plans and sections.'],['Structure','Columns and slabs give the drawing a frame.'],['Buildings','Structure becomes built mass.'],['City','Buildings gather into Kenyan towns and cities.'],['Network','Six member universities, one national network.']];
+const STG=[['Lines','Every building starts as a line on paper.'],['Drawings','Lines become plans and sections.'],['Structure','Columns and slabs give the drawing a frame.'],['Buildings','Structure becomes built mass.'],['City','Buildings gather into Kenyan towns and cities.'],['Network','Five member universities, one national network.']];
 STG.forEach((_,i)=>$('#pg').append(el('i')));
 const hero=$('#hero');let P=0,Pt=0,mx=0,my=0;
 function sp(p){const i=Math.min(5,Math.floor(p*6));$('#sh').textContent=STG[i][0];$('#sp').textContent=STG[i][1];[...$('#pg').children].forEach((x,j)=>x.className=j<=i?'on':'')}
