@@ -1,11 +1,27 @@
 /* CONTENT (kept separate from UI; move to CMS/DB later) */
+/* UNIVERSITY ASSOCIATION DIRECTORY
+   Single place to register an association for the "Join an association" finder on the contact form.
+   To add one: append an object. Fields:
+     slug    unique id; matches an entry in ASSOCIATIONS below if the association also appears on the map
+     uni     university name   |   name  association name or acronym
+     web     OFFICIAL website, https:// only. Leave '' until the association has a verified site (visitors then see the "contact ASA Kenya" message)
+     logo    optional image path, e.g. 'images/logo-xyz.png'
+     active  false hides the website link without deleting the entry
+   Order here is the order shown in the finder. Do not guess URLs: only add verified ones. */
+const ASSOC_DIRECTORY=[
+ {slug:'asa-tuk',uni:'Technical University of Kenya',name:'ASA TUK',web:'https://asatuk.netlify.app/',logo:'images/logo-tuk.png',active:true},
+ {slug:'asa-ku',uni:'Kenyatta University',name:'ASA KU',web:'',logo:'images/logo-ku.png',active:true},
+ {slug:'asa-jkuat',uni:'Jomo Kenyatta University of Agriculture and Technology',name:'ASA JKUAT',web:'',logo:'images/logo-jkuat.png',active:true},
+ {slug:'asa-uon',uni:'University of Nairobi',name:'ASA UoN',web:'',logo:'images/logo-uon.png',active:true},
+ {slug:'asa-tum',uni:'Technical University of Mombasa',name:'ASA TUM',web:'',logo:'images/logo-tum.png',active:true}
+];
 const ASSOCIATIONS=[
- {slug:'asa-tuk',short:'ASA TUK',uni:'Technical University of Kenya',city:'Nairobi town',ll:[36.82,-1.29],off:[-62,-30],pres:'Bonface Oino',web:'https://asatuk.netlify.app',contact:'Alex Muthui',phone:'+254 754 224786',links:{Join:'https://asatuk.netlify.app/join',News:'https://asatuk.netlify.app/news',FAQ:'https://asatuk.netlify.app/faq'},social:{Instagram:'https://www.instagram.com/asa_tuk/',TikTok:'https://www.tiktok.com/@asa_tuk',X:'https://x.com/asa_tuk'}},
+ {slug:'asa-tuk',short:'ASA TUK',uni:'Technical University of Kenya',city:'Nairobi town',ll:[36.82,-1.29],off:[-62,-30],pres:'Bonface Oino',contact:'Alex Muthui',phone:'+254 754 224786',links:{Join:'https://asatuk.netlify.app/join',News:'https://asatuk.netlify.app/news',FAQ:'https://asatuk.netlify.app/faq'},social:{Instagram:'https://www.instagram.com/asa_tuk/',TikTok:'https://www.tiktok.com/@asa_tuk',X:'https://x.com/asa_tuk'}},
  {slug:'asa-uon',short:'ASA UoN',uni:'University of Nairobi',city:'Nairobi',ll:[36.82,-1.29],off:[-70,28],pres:'Mary Thenge',email:'asauonofficial@gmail.com',ig:'@asa_uon'},
  {slug:'asa-ku',short:'ASA KU',uni:'Kenyatta University',city:'Nairobi town',ll:[36.82,-1.29],off:[-10,68],pres:'Hussein Sudi'},
  {slug:'asa-jkuat',short:'ASA JKUAT',uni:'Jomo Kenyatta University of Agriculture and Technology',city:'Kiambu',ll:[36.82,-1.29],off:[62,30],pres:'Joy Kingori'},
  {slug:'asa-tum',short:'ASA TUM',uni:'Technical University of Mombasa',city:'Mombasa',ll:[39.67,-4.05],off:[0,0],pres:'Beavan Bwire'}
-].map(a=>({...a,status:'approved'}));
+].map(a=>{const d=ASSOC_DIRECTORY.find(x=>x.slug==a.slug)||{};return {...a,web:d.active===false?'':d.web||'',logo:d.logo||'',status:'approved'}});
 const EXEC=[['President','Mary Thenge','University of Nairobi'],['Vice President','Bonface Oino','Technical University of Kenya'],['Secretary General','Bwire Bevan','Technical University of Mombasa'],['Deputy Secretary General','Clara Kamau','Kenyatta University'],['Treasurer','Laban Ombaso','Technical University of Mombasa'],['Welfare Director','Hussein Sudi','Kenyatta University'],['Events Director','Joy Too','Technical University of Kenya'],['Media Strategist','Sharon Micheni','Jomo Kenyatta University of Agriculture and Technology']];
 const LEG=[['JKUAT University President','Joy Kingori'],['UoN University President','Mary Thenge'],['KU University President','Hussein Sudi'],['TUK University President','Bonface Oino'],['TUM University President','Beavan Bwire']];
 const APPROACH=[['Unity and representation',['Unite architecture students and graduate architects in Kenya.','Represent architecture students nationally and internationally.','Foster collaboration among institutions offering architecture programmes.','Establish partnerships with industry stakeholders.']],['Excellence and growth',['Promote academic excellence and research.','Facilitate professional development and mentorship.','Promote leadership and innovation.','Bridge school and professional practice.']],['Impact and advocacy',['Organise conferences, seminars, workshops and competitions.','Promote sustainable architecture and environmental stewardship.','Advocate for the welfare of architecture students.','Encourage community engagement and social responsibility.']]];
@@ -90,7 +106,44 @@ $('#pa').innerHTML=AREAS.map(a=>`<div class="cell" style="border-color:rgba(255,
 $('#pt').innerHTML=[['Strategic partnership','For organisations interested in long-term collaboration.'],['Programme partnership','For organisations interested in supporting events, education or student initiatives.'],['Resource partnership','For organisations providing knowledge, tools, learning material or professional support.']].map(([a,b])=>`<div class="cell" style="border-color:rgba(255,255,255,.25)"><h3>${a}</h3><p>${b}</p></div>`).join('');
 $('#pp').innerHTML=PARTNERS.map(p=>`<div class="cell" style="border-color:rgba(255,255,255,.25)"><h3>${p.name}</h3><p>${p.note}</p><a class="btn" href="${p.url}" target="_blank" rel="noopener noreferrer">Visit partner website</a></div>`).join('');
 $('#gi').innerHTML=INV.map(([a,b])=>`<div class="cell"><h3>${a}</h3><p>${b}</p></div>`).join('');
-document.addEventListener('click',e=>{const a=e.target.closest('[data-type]');if(a)[...$('#ft').options].forEach(o=>{if(o.text==a.dataset.type)o.selected=true})});
+document.addEventListener('click',e=>{const a=e.target.closest('[data-type]');if(a)[...$('#ft').options].forEach(o=>{if(o.text==a.dataset.type)o.selected=true});syncAssoc()});
+/* JOIN AN ASSOCIATION FINDER */
+const trustedUrl=u=>{try{const x=new URL(u);return x.protocol==='https:'&&!x.username&&!x.password&&/^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(x.hostname)?x.href:null}catch(e){return null}};
+const NOT_LISTED='My university is not listed';
+const dirLabel=d=>`${d.uni} (${d.name})`;
+let asTok=0,asKey='';
+function renderAssoc(){const q=$('#aq').value.trim().toLowerCase(),box=$('#ar');
+ const d=ASSOC_DIRECTORY.find(x=>[dirLabel(x),x.uni,x.name].some(s=>s.toLowerCase()==q)),nl=q==NOT_LISTED.toLowerCase();
+ const key=!q?'':d?d.slug:nl?'~new':'~hint';
+ if(key===asKey)return; /* same selection: keep the existing button (a blur-triggered re-render would swallow the click on Join Now) */
+ asKey=key;const tok=++asTok;box.replaceChildren();
+ if(!q)return;
+ if(!d&&!nl){box.append(el('p','Select your university from the list to see its association.','note'));return}
+ const card=el('div','','arc'),txt=el('div');
+ if(d&&d.logo){const i=el('img');i.src=d.logo;i.alt=d.name+' logo';i.width=i.height=72;card.append(i)}
+ const h=el('h4');h.textContent=d?d.name:'Start an association';txt.append(h);
+ const sub=el('p');sub.textContent=d?d.uni:'We would love to hear from you.';txt.append(sub);
+ const url=d&&d.active!==false?trustedUrl(d.web):null;
+ if(url){
+  const a=el('a','','btn');a.href=url;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Join Now';
+  const sr=el('span',' (opens '+d.name+' website in a new tab)','sr');a.append(sr);txt.append(a);
+  const host=el('p','','note');host.textContent='Opens '+new URL(url).hostname+' in a new tab, so you can return to ASA Kenya.';txt.append(host);
+  const warn=el('p','','err');warn.setAttribute('role','status');txt.append(warn);
+  const ac=new AbortController(),t=setTimeout(()=>ac.abort(),7000);
+  fetch(url,{mode:'no-cors',signal:ac.signal,cache:'no-store'}).catch(()=>{if(tok==asTok)warn.textContent='We could not reach this website just now. You can still try the button, or contact ASA Kenya and we will connect you.'}).finally(()=>clearTimeout(t));
+ }else{
+  const p=el('p');p.textContent=d?`${d.name} does not have a registered association website yet.`:'If your university has no association yet, you can help start one.';txt.append(p);
+  const p2=el('p');p2.textContent='Contact ASA Kenya and we will connect you with your association or support you to establish one.';txt.append(p2);
+  const b=el('button','','btn');b.type='button';b.textContent='Express interest';
+  b.onclick=()=>{const f=$('#f').elements;if(!f['subject'].value.trim())f['subject'].value=d?'Interest in joining '+d.name:'Interest in establishing an association';if(!f['organisation'].value.trim()&&d)f['organisation'].value=d.uni;f['message'].focus()};
+  txt.append(b);
+ }
+ card.append(txt);box.append(card)}
+function syncAssoc(){const on=$('#ft').value=='Join an association',s=$('#assoc');if(s.hidden==!on)return;s.hidden=!on;if(!on){$('#aq').value='';asTok++;asKey='';$('#ar').replaceChildren()}}
+$('#aql').innerHTML=[...ASSOC_DIRECTORY.map(dirLabel),NOT_LISTED].map(v=>`<option value="${v.replace(/"/g,'&quot;')}"></option>`).join('');
+$('#aq').addEventListener('input',renderAssoc);$('#aq').addEventListener('change',renderAssoc);
+$('#aq').addEventListener('keydown',e=>{if(e.key=='Enter'){e.preventDefault();renderAssoc()}});
+$('#ft').addEventListener('change',syncAssoc);$('#f').addEventListener('reset',()=>setTimeout(syncAssoc,0));
 const FORMSPREE_ENDPOINT="https://formspree.io/f/mbgdoblk";
 $('#f').onsubmit=async e=>{e.preventDefault();const f=e.target,F=f.elements;let bad=0;const chk=(n,ok,msg)=>{const x=$('#e-'+n);x.textContent=ok?'':msg;F[n].setAttribute('aria-invalid',!ok);if(!ok&&!bad)F[n].focus();if(!ok)bad=1};
  chk('name',F['name'].value.trim(),'Please enter your name.');chk('email',/^\S+@\S+\.\S+$/.test(F['email'].value),'Please enter a valid email address.');chk('subject',F['subject'].value.trim(),'Please add a subject.');chk('message',F['message'].value.trim().length>9,'Please write at least 10 characters.');chk('website',!F['website'].value||/^https:\/\//.test(F['website'].value),'Links must start with https://');chk('consent',F['consent'].checked,'Please give your consent so ASA Kenya can respond.');
@@ -109,7 +162,7 @@ $('#f').onsubmit=async e=>{e.preventDefault();const f=e.target,F=f.elements;let 
  s+=`<text x="${X([36.82,0])-50}" y="${Y([0,-1.29])-72}" fill="#8EDBA6" font-size="10" font-family="Archivo">Nairobi</text>`;
  $('#kmap').innerHTML=s;{const k=$('#kmap'),go=()=>{k.classList.add('go');setTimeout(()=>k.querySelectorAll('[style*=transition-delay]').forEach(x=>x.style.transitionDelay='0s'),6500)};if(matchMedia('(prefers-reduced-motion:reduce)').matches||!('IntersectionObserver'in window))go();else new IntersectionObserver((e,o)=>{if(e[0].isIntersecting){go();o.disconnect()}},{threshold:.3}).observe(k)}
  const show=slug=>{const a=ASSOCIATIONS.find(x=>x.slug==slug);document.querySelectorAll('.k g.n').forEach(g=>g.classList.toggle('sel',g.dataset.s==slug));
-  $('#prof').innerHTML=`<h3>${a.short}</h3><p style="margin:0">${a.uni}</p><dl><dt>City</dt><dd>${a.city}</dd><dt>University president</dt><dd class="${a.pres?'':'tbd'}">${a.pres||'To be confirmed'}</dd><dt>Events</dt><dd>${EVENTS.filter(e=>e.association==a.short).map(e=>e.title).join(', ')||'<span class="tbd">None listed yet</span>'}</dd><dt>Website</dt><dd class="${a.web?'':'tbd'}">${a.web?`<a href="${a.web}" target="_blank" rel="noopener noreferrer">${a.web.replace(/^https?:\/\//,'')}</a>`:'To be provided'}</dd><dt>Social media</dt><dd class="${a.ig||a.social?'':'tbd'}">${a.ig||(a.social?'See links below':'To be provided')}</dd><dt>Contact</dt><dd>${a.contact?`${a.contact}<br><a href="https://wa.me/${a.phone.replace(/\D/g,'')}" target="_blank" rel="noopener noreferrer" aria-label="Chat with ${a.contact} on WhatsApp">${a.phone} (WhatsApp)</a>`:(a.email||'University representatives')}</dd></dl>${a.links?`<div class="tq">${Object.entries(a.links).map(([k,u])=>`<a class="btn o" href="${u}" target="_blank" rel="noopener noreferrer">${a.short}: ${k}</a>`).join("")}</div>`:'<button class="btn o" disabled style="opacity:.5;cursor:not-allowed">Official website: to be confirmed</button>'}${a.social?`<p style="margin:16px 0 0"><b>Follow ${a.short}</b></p><div class="soc">${socHtml(a.social,a.short)}</div>`:''}<p class="note" style="color:#BFE3C9">${a.nm?'Association name and details to be confirmed. ':''}Listed as a member university on the ASA Kenya site.</p>`};
+  $('#prof').innerHTML=`${a.logo?`<img class="plogo" src="${a.logo}" alt="${a.short} logo" width="72" height="72">`:''}<h3>${a.short}</h3><p style="margin:0">${a.uni}</p><dl><dt>City</dt><dd>${a.city}</dd><dt>University president</dt><dd class="${a.pres?'':'tbd'}">${a.pres||'To be confirmed'}</dd><dt>Events</dt><dd>${EVENTS.filter(e=>e.association==a.short).map(e=>e.title).join(', ')||'<span class="tbd">None listed yet</span>'}</dd><dt>Website</dt><dd class="${a.web?'':'tbd'}">${a.web?`<a href="${a.web}" target="_blank" rel="noopener noreferrer">${a.web.replace(/^https?:\/\//,'')}</a>`:'To be provided'}</dd><dt>Social media</dt><dd class="${a.ig||a.social?'':'tbd'}">${a.ig||(a.social?'See links below':'To be provided')}</dd><dt>Contact</dt><dd>${a.contact?`${a.contact}<br><a href="https://wa.me/${a.phone.replace(/\D/g,'')}" target="_blank" rel="noopener noreferrer" aria-label="Chat with ${a.contact} on WhatsApp">${a.phone} (WhatsApp)</a>`:(a.email||'University representatives')}</dd></dl>${a.links?`<div class="tq">${Object.entries(a.links).map(([k,u])=>`<a class="btn o" href="${u}" target="_blank" rel="noopener noreferrer">${a.short}: ${k}</a>`).join("")}</div>`:'<button class="btn o" disabled style="opacity:.5;cursor:not-allowed">Official website: to be confirmed</button>'}${a.social?`<p style="margin:16px 0 0"><b>Follow ${a.short}</b></p><div class="soc">${socHtml(a.social,a.short)}</div>`:''}<p class="note" style="color:#BFE3C9">${a.nm?'Association name and details to be confirmed. ':''}Listed as a member university on the ASA Kenya site.</p>`};
  $('#prof').innerHTML='<h3>Select a node</h3><p>Choose an association on the map to see its profile.</p>';
  document.querySelectorAll('.k g.n').forEach(g=>{g.onclick=()=>show(g.dataset.s);g.onmouseenter=g.onfocus=()=>hlt(g.dataset.s,1);g.onmouseleave=g.onblur=()=>hlt(g.dataset.s,0);g.onkeydown=e=>{if(e.key=='Enter'||e.key==' '){e.preventDefault();show(g.dataset.s)}}})})();
 /* STATS */

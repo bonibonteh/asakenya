@@ -149,3 +149,14 @@ footer a[aria-label]:hover{text-decoration:underline}
 .lc{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:8px 0 0}
 @media(prefers-reduced-motion:reduce){.lau .d{stroke-dashoffset:0;transition:none}.lau .col{transform:none;transition:none}.lau .tx{opacity:1;transition:none}.lc button{display:none}}
 html.lenis,html.lenis body{height:auto}.lenis.lenis-smooth{scroll-behavior:auto!important}
+
+/* Join an association finder + logos */
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.assoc{border:1.5px solid var(--leaf);background:var(--paper);padding:20px;display:grid;gap:12px}.assoc[hidden]{display:none}
+.assoc h3{margin:0;font-size:1.25rem}.assoc p{margin:0}
+.arc{display:flex;gap:16px;align-items:flex-start;border-top:1.5px solid var(--line);padding-top:16px}
+.arc img,.prof .plogo{width:72px;height:72px;object-fit:contain;flex:none;border:1px solid var(--line);border-radius:8px;background:#fff}
+.arc h4{margin:0 0 2px;font:800 1.2rem var(--d)}.arc .btn{margin-top:12px}.arc p+p{margin-top:6px}
+.prof .plogo{float:right;margin:0 0 8px 12px;border-color:#8EDBA6}
+.assoc :focus-visible,.arc .btn:focus-visible{outline:3px solid var(--earth);outline-offset:2px}
+@media(max-width:480px){.arc{flex-direction:column}}
