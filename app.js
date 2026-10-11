@@ -68,11 +68,16 @@ addEventListener('hashchange',route);route();
 $('#mb').onclick=function(){const o=$('#lk').classList.toggle('open');this.setAttribute('aria-expanded',o)};
 $('#lk').onclick=e=>{if(e.target.tagName=='A')$('#lk').classList.remove('open')};
 let cat='All';
+let OPP_STATE='off';
+const oLink=(u,t)=>u&&/^https:\/\//.test(u)?`<a href="${u}" target="_blank" rel="noopener noreferrer">${t}</a> `:'';
+const esc=x=>x==null?'':String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+window.ASA_ESC=esc;window.ASA_OPP_STATE=()=>OPP_STATE;
 let q='';
 function renderOpps(){const l=OPPS.filter(o=>o.status=='approved'&&(cat=='All'||o.category==cat)&&(!q||(o.title+' '+o.description+' '+o.organisation).toLowerCase().includes(q)));const box=$('#ol');box.innerHTML='';$('#hh').textContent=cat=='All'?'All opportunities':cat;
  document.querySelectorAll('#ht button.tile').forEach(t=>t.setAttribute('aria-pressed',t.dataset.c==cat));
+ if(!l.length&&OPP_STATE!='ready'&&OPP_STATE!='off'){box.append(el('div',OPP_STATE=='loading'?`<b>Loading opportunities...</b>`:`<b>Opportunities could not be loaded right now</b><p>Please check your connection and refresh the page.</p>`,'empty'));return}
  if(!l.length){box.append(el('div',`<b>${q?'No matches for "'+q.replace(/</g,'&lt;')+'"':'No '+(cat=='All'?'opportunities':cat.toLowerCase())+' published yet'}</b><p>Verified opportunities will appear here with deadlines and application links. Know of one? Submit it for review.</p>`,'empty'));return}
- l.forEach(o=>{const d=o.deadline?Math.ceil((new Date(o.deadline)-new Date())/864e5):null;box.append(el('div',`<div><h3>${o.title}</h3><p>${o.organisation}, ${o.location}. ${o.description}</p><a href="${o.applyUrl}">Apply</a> <a href="${o.officialUrl}">Official website</a></div><div>${d!==null&&d>=0&&d<=14?'<span class="badge">Deadline approaching</span>':''}<div class="note">${o.deadline||''}</div></div>`,'item'))})}
+ l.forEach(o=>{const d=o.deadline?Math.ceil((new Date(o.deadline)-new Date())/864e5):null;box.append(el('div',`<div><h3>${o.title}</h3><p>${[o.organisation,o.location].filter(Boolean).join(', ')}. ${o.description}</p>${o.eligibility?`<p><b>Eligibility:</b> ${o.eligibility}</p>`:''}${oLink(o.applyUrl,'Apply')}${oLink(o.officialUrl,'Official website')}${oLink(o.download,'Download')}</div><div>${d!==null&&d>=0&&d<=14?'<span class="badge">Deadline approaching</span>':''}<div class="note">${o.deadline||''}</div></div>`,'item'))})}
 function mkTiles(box){HUB.forEach((h,i)=>{const res=h[0]=='Resources',n=OPPS.filter(o=>o.status=='approved'&&o.category==h[0]).length;
  const t=el('a',`<i>S-${String(i+1).padStart(2,'0')}</i><b>${h[0]}</b><span>${h[1]}</span><em>${res?'Open the library':n?n+' open':'None listed yet'}</em>`,'tile');t.href=res?'#resources':'#hub/'+slug(h[0]);t.dataset.c=h[0];t.style.transitionDelay=i*45+'ms';box.append(t)})}
 mkTiles($('#ht'),0);mkTiles($('#hp'),1);renderOpps();$('#hq').oninput=e=>{q=e.target.value.trim().toLowerCase();renderOpps()};
@@ -240,3 +245,18 @@ if('IntersectionObserver'in window){const rio=new IntersectionObserver((en,o)=>e
  tagRv();addEventListener('hashchange',()=>setTimeout(tagRv,60))}
 document.addEventListener('pointermove',e=>{const t=e.target.closest&&e.target.closest('.tile');if(t){const r=t.getBoundingClientRect();t.style.setProperty('--mx',e.clientX-r.left+'px');t.style.setProperty('--my',e.clientY-r.top+'px')}},{passive:true});
 if(typeof Lenis!=='undefined'&&!RM){try{new Lenis({autoRaf:true,lerp:.09})}catch(e){}}
+
+/* LIVE OPPORTUNITIES (Supabase). Published, non-expired rows only; the database enforces that.
+   All database text is escaped here once, so the renderers above can safely build HTML from it. */
+window.ASA_ALL=[];
+function mapOpp(r){const u=x=>x&&/^https:\/\//.test(x)?x:'';return{id:r.id,title:esc(r.title),organisation:esc(r.organisation),category:r.category,description:esc(r.description),location:esc(r.location),applyUrl:u(r.apply_url),download:u(r.file_url),deadline:r.deadline||'',eligibility:esc(r.eligibility),audience:r.audience,status:'approved'}}
+function redrawOpps(){OPPS.length=0;ASA_ALL.filter(o=>o.audience!='graduates').forEach(o=>OPPS.push(o));
+ ['#ht','#hp'].forEach(id=>{const b=$(id);if(b){b.innerHTML='';mkTiles(b)}});document.querySelectorAll('.tile').forEach(t=>t.classList.add('in'));
+ renderOpps();const m=location.hash.slice(1).split('/');if(m[1]&&DIR[m[0]]&&m[0]=='hub'&&DIR.hub.items.some(i=>slug(i[0])==m[1]))renderCat(m[0],m[1]);
+ dispatchEvent(new Event('asa:opps'))}
+async function loadOpps(){if(!window.ASA_DB||!ASA_DB.configured())return;OPP_STATE='loading';renderOpps();
+ try{const rows=await ASA_DB.select('opportunities','select='+ASA_DB.OPP_COLS+'&status=eq.published&order=deadline.asc.nullslast,published_at.desc');
+  ASA_ALL.length=0;(rows||[]).forEach(r=>ASA_ALL.push(mapOpp(r)));OPP_STATE='ready'}
+ catch(e){ASA_ALL.length=0;OPP_STATE=e&&e.status==404?'ready':'error'}
+ redrawOpps()}
+loadOpps();

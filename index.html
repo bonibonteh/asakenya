@@ -10,13 +10,13 @@
 <link rel="stylesheet" href="style.css"></head><body>
 <nav aria-label="Main"><div class="wrap"><a class="logo" href="#home"><img src="images/photo-2.jpg" alt="" width="36" height="36">ASA KENYA</a>
 <button id="mb" aria-expanded="false" aria-controls="lk">Menu</button>
-<div class="links" id="lk" role="tablist"><a href="#home">Home</a><a href="#about">About</a><a href="#network">Network</a><a href="#hub">Student Hub</a><a href="#events">Events</a><a href="#work">Student work</a><a href="#resources">Resources</a><a href="#journal">Journal</a><a href="#partner">Partner</a><a href="#contact">Contact</a></div></div></nav>
+<div class="links" id="lk" role="tablist"><a href="#home">Home</a><a href="#about">About</a><a href="#network">Network</a><a href="#hub">Student Hub</a><a href="#graduates">Graduates</a><a href="#events">Events</a><a href="#work">Student work</a><a href="#resources">Resources</a><a href="#journal">Journal</a><a href="#partner">Partner</a><a href="#contact">Contact</a></div></div></nav>
 <main id="top">
 <section id="hero" data-tab="home" aria-label="ASA Kenya introduction"><div class="stick">
 <canvas id="cv" aria-hidden="true"></canvas><div class="fb" aria-hidden="true"></div><div id="nls"></div>
 <div class="ov"><div class="wrap"><h1>ASA <span>Kenya</span></h1><p class="tag">Architecture students. One national network.</p>
 <div class="stage" aria-live="off"><b id="sh">Lines</b><span id="sp"></span></div><div class="prog" id="pg"></div></div>
-<div class="wrap"><div class="paths"><a href="#hub"><i class="no">01</i><b>I am a student</b><span>Explore opportunities</span></a><a href="#contact" data-type="Join an association"><i class="no">02</i><b>I represent an association</b><span>Join the ASA Kenya network</span></a><a href="#partner"><i class="no">03</i><b>I want to partner</b><span>Partner with ASA Kenya</span></a></div></div></div></div></section>
+<div class="wrap"><div class="paths"><a href="#hub"><i class="no">01</i><b>I am a student</b><span>Explore opportunities</span></a><a href="#graduates"><i class="no">02</i><b>I am a graduate architect</b><span>Careers, mentorship, registration</span></a><a href="#contact" data-type="Join an association"><i class="no">03</i><b>I represent an association</b><span>Join the ASA Kenya network</span></a><a href="#partner"><i class="no">04</i><b>I want to partner</b><span>Partner with ASA Kenya</span></a></div></div></div></div></section>
 
 <section id="about" data-tab="about" class="sec"><div class="wrap"><div class="two"><div><img class="mult" src="images/photo-3.jpg" width="420" height="288" alt="ASA Kenya logo: a green outline of Kenya, a red-ringed shield and crossed spears forming the letters A, S and A">
 <h2 style="margin-top:20px">The umbrella body for architecture students and graduate architects</h2>
@@ -50,6 +50,76 @@
 <div class="tiles" id="ht" role="group" aria-label="Opportunity categories"></div>
 <h3 id="hh" style="margin-top:56px;scroll-margin-top:80px">All opportunities</h3><div id="ol" aria-live="polite" style="margin-top:14px"></div>
 <p><a class="btn" href="#contact" data-type="Submit an opportunity">Submit an opportunity</a></p><p class="note">Submissions are reviewed by ASA Kenya before they are published. Only verified opportunities are listed.</p></div></section>
+
+<section id="graduates" data-tab="graduates"><div class="wrap">
+<p class="note" style="margin:0 0 10px">FOR GRADUATE ARCHITECTS</p><h2>Graduate Architects Hub</h2>
+<p class="sub">A starting point for architecture graduates in Kenya: opportunities, mentorship, skills, and the road to professional registration. Everything listed here is added by ASA Kenya after review. Nothing is listed until it is real.</p>
+<div class="gnav" role="navigation" aria-label="Jump to a section"><button type="button" class="chip" data-go="g-find">Opportunities</button><button type="button" class="chip" data-go="g-mentor">Mentorship</button><button type="button" class="chip" data-go="g-skills">Skills</button><button type="button" class="chip" data-go="g-reg">Registration roadmap</button><button type="button" class="chip" data-go="g-port">Portfolios</button><button type="button" class="chip" data-go="g-net">Graduate network</button><button type="button" class="chip" data-go="g-events">Events and CPD</button><button type="button" class="chip" data-go="g-partner">Partner</button></div>
+
+<h3 id="g-find" class="gh">Find opportunities</h3>
+<p class="note">Jobs, internships, traineeships, competitions, grants, fellowships and more. Only opportunities reviewed and published by ASA Kenya appear, and expired ones are hidden automatically.</p>
+<label class="hs">Search opportunities<input id="gq" type="search" placeholder="Title, organisation, location..." autocomplete="off"></label>
+<div class="gfil" id="gf" role="group" aria-label="Opportunity type"></div>
+<div id="gl" aria-live="polite" style="margin-top:14px"></div>
+
+<h3 id="g-alert" class="gh">Opportunity alerts</h3>
+<div class="cell gform"><p><b>Email alerts are not active yet.</b> You can register your interest below. Saving your choices does not start any emails today; it only tells ASA Kenya what graduates would like to hear about.</p>
+<form id="galert" novalidate><label>Email<input type="email" name="email" autocomplete="email" maxlength="254" required></label>
+<fieldset class="gck"><legend>Which opportunities?</legend><div id="gac"></div></fieldset>
+<input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+<label class="ck"><input type="checkbox" name="consent"> I agree that ASA Kenya may store my email and these choices to contact me about graduate opportunities. See the privacy notice below.</label>
+<span class="err" role="alert"></span><button class="btn" type="submit">Register my interest</button><div class="gok" role="status" hidden></div></form></div>
+
+<div class="grid3 ggrid">
+<div class="cell" id="g-mentor"><h3>Mentorship</h3><p>Graduates can be paired with practising architects. ASA Kenya is collecting interest from graduates who want a mentor and from architects willing to mentor. No mentors are listed publicly, and pairing is arranged by ASA Kenya.</p><p><button type="button" class="btn" data-open="mentee">I would like a mentor</button> <button type="button" class="btn o" data-open="mentor">I could mentor</button></p></div>
+<div class="cell" id="g-skills"><h3>Skills development</h3><p>Workshops, software training and short courses open to graduates are listed in the finder above under Skills and workshops, as partners confirm them.</p><p><button type="button" class="btn o" data-filter="Skills and workshops">See workshops</button></p></div>
+<div class="cell"><h3>Careers and site visits</h3><p>Jobs, internships, traineeships, volunteering and paid projects, plus visits to live projects and finished buildings, appear as they are confirmed.</p><p><button type="button" class="btn o" data-filter="Careers">See careers</button> <button type="button" class="btn o" data-filter="Site visits">See site visits</button></p></div>
+<div class="cell"><h3>Competitions, grants and fellowships</h3><p>Design competitions, research grants, scholarships, fellowships, calls for papers and exhibitions, all searchable above.</p><p><button type="button" class="btn o" data-filter="Competitions, grants and fellowships">Browse these</button></p></div>
+</div>
+
+<h3 id="g-reg" class="gh">Professional registration roadmap</h3>
+<div class="cell"><p><b>ASA Kenya is not a regulator.</b> It does not set, assess or approve registration requirements. The steps below only point you to the official bodies, whose current rules always apply.</p>
+<ol class="gsteps"><li><b>Read the official requirements.</b> Find the current requirements for registering as an architect from the registration board.</li><li><b>Check professional membership.</b> Look at what the Architectural Association of Kenya publishes about joining.</li><li><b>Confirm with the body directly.</b> Fees, forms, experience records and examinations change. Ask the body, not a third party.</li><li><b>Plan your practical experience.</b> Use what the official sources say, and look for mentors and firms through this hub.</li></ol>
+<p id="glinks" class="glinks"></p></div>
+
+<h3 id="g-port" class="gh">Portfolio showcase</h3>
+<p class="note">Graduates can ask to have a portfolio link featured. Every submission is reviewed by ASA Kenya before it appears, and only with your consent. Only your name, university, year, headline, short bio and portfolio link are ever shown. Your email is never shown.</p>
+<div id="gp" class="gport" aria-live="polite"></div>
+<div class="cell gform"><h4 style="margin:0 0 6px">Submit your portfolio for review</h4>
+<form id="gport" novalidate><label>Full name<input name="full_name" autocomplete="name" maxlength="120" required></label>
+<label>Email (kept private)<input type="email" name="email" autocomplete="email" maxlength="254" required></label>
+<label>University<input name="university" maxlength="160" required></label>
+<label>Graduation year<input name="graduation_year" inputmode="numeric" maxlength="4" required></label>
+<label>Headline<input name="headline" maxlength="160" placeholder="e.g. Graduate architect interested in housing" required></label>
+<label>Short bio (optional)<textarea name="bio" rows="3" maxlength="1500"></textarea></label>
+<label>Portfolio link (https://)<input type="url" name="portfolio_url" maxlength="2000" placeholder="https://" required></label>
+<input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+<label class="ck"><input type="checkbox" name="consent"> I give permission for ASA Kenya to publish the details above on this site if it approves my submission. I can ask for removal at any time.</label>
+<span class="err" role="alert"></span><button class="btn" type="submit">Submit for review</button><div class="gok" role="status" hidden></div></form></div>
+
+<h3 id="g-net" class="gh">Graduate network</h3>
+<div class="cell gform"><p>Tell ASA Kenya you are a graduate architect and want to be part of the network. Your details are only used by ASA Kenya to contact you about this hub.</p>
+<form id="gint" novalidate><label>I am joining as<select name="interest_type"><option value="graduate">A graduate architect</option><option value="mentee">A graduate looking for a mentor</option><option value="mentor">An architect who could mentor</option></select></label>
+<label>Full name<input name="full_name" autocomplete="name" maxlength="120" required></label>
+<label>Email<input type="email" name="email" autocomplete="email" maxlength="254" required></label>
+<label><span id="gu-l">University</span><input name="university" maxlength="160"></label>
+<label id="gy-w">Graduation year<input name="graduation_year" inputmode="numeric" maxlength="4"></label>
+<label>Location (town or city)<input name="location" maxlength="120"></label>
+<label>Skills or areas of practice (optional)<textarea name="skills" rows="2" maxlength="500"></textarea></label>
+<fieldset class="gck"><legend>Interested in (optional)</legend><div id="gic"></div></fieldset>
+<label>Portfolio link (optional, https://)<input type="url" name="portfolio_url" maxlength="2000" placeholder="https://"></label>
+<input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+<label class="ck"><input type="checkbox" name="consent"> I agree that ASA Kenya may store these details to contact me about graduate opportunities, mentorship and events.</label>
+<span class="err" role="alert"></span><button class="btn" type="submit">Send my details</button><div class="gok" role="status" hidden></div></form></div>
+
+<h3 id="g-events" class="gh">Events and CPD</h3>
+<div class="cell"><p>Graduate-friendly events are listed on the <a href="#events">Events page</a> as ASA Kenya confirms them. Where an event is offered for continuing professional development (CPD), the organiser will state it. ASA Kenya does not award or guarantee CPD points unless an event says so.</p></div>
+
+<h3 id="g-partner" class="gh">Partner with the hub</h3>
+<div class="cell"><p>Firms, practices, universities and organisations can offer jobs, internships, mentors, training or site visits to graduates. Opportunities are reviewed by ASA Kenya before they are published.</p><p><a class="btn" href="#partner">Partner with ASA Kenya</a></p></div>
+
+<div class="cell gpriv" id="g-priv"><h4 style="margin:0 0 6px">Privacy notice for these forms</h4><p>These forms collect the details you type in, and nothing else. ASA Kenya uses them to run this hub: to contact you, to match mentors, to review portfolios and to understand what graduates need. Details are visible only to ASA Kenya administrators; they are not sold or shared for advertising. Approved portfolio entries show only the fields listed in the portfolio section. To see, correct or delete your details, use the <a href="#contact">contact form</a>. Ticking the consent box is required, and a record of that consent is stored with your details.</p></div>
+</div></section>
 
 <section id="events" data-tab="events"><div class="wrap"><h2>What's happening?</h2>
 <p class="sub">One national calendar for ASA Kenya and every member university. Calendar year: September 2026 to September 2027.</p>
@@ -86,4 +156,4 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.18/dist/lenis.min.js"></script>
-<script src="app.js"></script></body></html>
+<script src="config.js"></script><script src="supa.js"></script><script src="app.js"></script><script src="grad.js"></script></body></html>
