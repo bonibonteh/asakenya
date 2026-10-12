@@ -101,7 +101,7 @@ function progHtml(e){return `<div class="pgm"><h4>Launch programme</h4>${e.tagli
 function renderEv(a){const b=$('#el');b.innerHTML='';const now=new Date(new Date().toDateString());
  const l=EVENTS.filter(e=>e.status=='approved'&&(a=='All'||e.association==a)).sort((x,y)=>new Date(x.date)-new Date(y.date));
  const up=l.filter(e=>new Date(e.date)>=now),pa=l.filter(e=>new Date(e.date)<now).reverse();
- const row=(e,past)=>el('div',`<div><h3>${e.title}</h3><p style="margin:.3em 0"><b>${e.show}</b>, ${e.location}</p><p>${e.description}</p>${e.anim?launchHtml(e):''}${e.programme?progHtml(e):''}${e.link?`<a class="btn" href="${e.link}" target="_blank" rel="noopener noreferrer">${e.lt}</a>`:''}${e.pics?'<div class="pics">'+e.pics.map(p=>`<img src="${p[0]}" alt="${p[1]}" loading="lazy">`).join('')+'</div>':''}</div><span class="badge" style="background:${past?'var(--mut)':'var(--earth)'};align-self:start">${e.association}</span>`,'item');
+ const row=(e,past)=>el('div',`<div><h3>${e.title}</h3><p style="margin:.3em 0"><b>${e.show}</b>, ${e.location}</p><p>${e.description}</p>${e.anim?launchHtml(e):''}${e.programme?progHtml(e):''}${e.link?`<a class="btn" href="${e.link}" target="_blank" rel="noopener noreferrer">${e.lt}</a>`:''}${e.doc?`<a class="btn o" href="${e.doc}" target="_blank" rel="noopener noreferrer">Open attachment</a>`:''}${e.pics?'<div class="pics">'+e.pics.map(p=>`<img src="${p[0]}" alt="${p[1]}" loading="lazy">`).join('')+'</div>':''}</div><span class="badge" style="background:${past?'var(--mut)':'var(--earth)'};align-self:start">${e.association}</span>`,'item');
  b.append(el('h3',`Upcoming`));if(!up.length)b.append(el('div',`<b>No upcoming events listed${a!='All'?' for '+a:''} yet</b><p>Check back soon, or submit an event.</p>`,'empty'));up.forEach(e=>b.append(row(e,0)));
  if(pa.length){{const ph=el('h3','Past events');ph.style.marginTop='40px';b.append(ph)}pa.forEach(e=>b.append(row(e,1)))}armLau(b)}
 chips('#ec',['ASA Kenya',...ASSOCIATIONS.filter(a=>!a.nm).map(a=>a.short)],renderEv);renderEv('All');
@@ -260,3 +260,25 @@ async function loadOpps(){if(!window.ASA_DB||!ASA_DB.configured())return;OPP_STA
  catch(e){ASA_ALL.length=0;OPP_STATE=e&&e.status==404?'ready':'error'}
  redrawOpps()}
 loadOpps();
+
+/* LIVE EVENTS + ANNOUNCEMENTS (Supabase). Built-in events above stay; published database events are added to them.
+   All database text is escaped once here. Links must be https. */
+const EV_BUILTIN=EVENTS.length;
+function evDate(iso){const p=String(iso).slice(0,10).split('-'),d=new Date(Date.UTC(+p[0],+p[1]-1,+p[2]));return d.toLocaleDateString('en-GB',{weekday:'long',timeZone:'UTC'})+', '+d.getUTCDate()+' '+d.toLocaleDateString('en-GB',{month:'long',timeZone:'UTC'})+' '+d.getUTCFullYear()}
+function evTime(t){if(!t)return'';const p=String(t).split(':'),h=+p[0];return(h%12||12)+':'+(p[1]||'00')+' '+(h<12?'AM':'PM')}
+function mapEvent(r){const u=x=>x&&/^https:\/\//.test(x)?x:'';const t=r.start_time?evTime(r.start_time)+(r.end_time?' to '+evTime(r.end_time):''):'';
+ const img=u(r.image_url),pdf=/\.pdf(\?|$)/i.test(img);
+ const place=[r.venue,r.online_url?'Online':''].filter(Boolean).join(' and ');
+ const link=u(r.registration_url)||u(r.online_url);
+ return{title:esc(r.title),association:r.association,date:String(r.event_date).slice(0,10),show:esc(evDate(r.event_date)+(t?', '+t:'')),location:esc(place),description:esc(r.description).replace(/\n/g,'<br>'),
+  status:'approved',link:link,lt:u(r.registration_url)?'Register':'Join online',pics:img&&!pdf?[[img,'Poster for '+esc(r.title)]]:null,doc:pdf?img:'',live:1}}
+async function loadEvents(){if(!window.ASA_DB||!ASA_DB.configured())return;
+ try{const rows=await ASA_DB.select('events','select=id,title,association,description,event_date,start_time,end_time,venue,online_url,registration_url,image_url,status&status=eq.published&order=event_date.asc&limit=200');
+  EVENTS.length=EV_BUILTIN;(rows||[]).forEach(r=>EVENTS.push(mapEvent(r)));renderEv('All');document.querySelectorAll('#el .item').forEach(t=>t.classList.add('in'))}catch(e){/* keep built-in events */}}
+function renderNews(rows){const box=$('#jn'),em=$('#jempty');if(!box)return;box.innerHTML='';
+ (rows||[]).forEach(r=>{const u=x=>x&&/^https:\/\//.test(x)?x:'';const img=u(r.image_url);const d=r.published_at?new Date(r.published_at).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric',timeZone:'Africa/Nairobi'}):'';
+  box.append(el('div',`<div><p class="note" style="margin:0">${esc(r.kind)}${d?' · '+d:''}</p><h3 style="margin:.2em 0">${esc(r.title)}</h3><p style="white-space:pre-line">${esc(r.body)}</p>${img&&!/\.pdf(\?|$)/i.test(img)?`<div class="pics"><img src="${img}" alt="" loading="lazy"></div>`:''}${img&&/\.pdf(\?|$)/i.test(img)?`<a class="btn o" href="${img}" target="_blank" rel="noopener noreferrer">Open attachment</a>`:''}</div>`,'item'));});
+ box.querySelectorAll('.item').forEach(t=>t.classList.add('in'));if(em)em.hidden=!!(rows&&rows.length)}
+async function loadNews(){if(!window.ASA_DB||!ASA_DB.configured())return;
+ try{renderNews(await ASA_DB.select('announcements','select=id,title,kind,body,image_url,published_at&status=eq.published&order=published_at.desc&limit=50'))}catch(e){/* keep the empty state */}}
+loadEvents();loadNews();

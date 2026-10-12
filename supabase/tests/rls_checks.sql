@@ -1,6 +1,6 @@
 -- ============================================================================
--- ASA Kenya - access-rule self-test for migrations 001 and 002
--- HOW TO USE: run migrations 001 and 002 first, then paste this whole file into
+-- ASA Kenya - access-rule self-test for migrations 001, 002 and 003
+-- HOW TO USE: run migrations 001, 002 and 003 first, then paste this whole file into
 -- Supabase -> SQL Editor and click Run.
 --
 -- It creates fake test users and data, pretends to be each kind of visitor
@@ -369,6 +369,99 @@ select zz_rls_test.ok('portfolio: public columns can be read',
   $q$select id,full_name,university,graduation_year,headline,bio,portfolio_url,created_at,status from public.portfolio_submissions$q$);
 select zz_rls_test.val('public: the admin''s archive/publish changes are reflected (archived row now hidden)',
   $q$select count(*)::text from public.opportunities where title in ('zz pub null')$q$, '0');
+reset role;
+
+-- ---------------------------------------------------------------------------
+-- MIGRATION 003: events and announcements (admin-managed, public reads published only)
+-- ---------------------------------------------------------------------------
+reset role;
+insert into public.events (title, association, description, event_date, venue, status, created_by) values
+  ('zz ev published','ASA Kenya','A published event description', current_date + 5, 'Nairobi', 'published', '00000000-0000-4000-8000-0000000000a1'),
+  ('zz ev draft','ASA Kenya','A draft event description here', current_date + 6, 'Nairobi', 'draft', '00000000-0000-4000-8000-0000000000a1'),
+  ('zz ev past','ASA TUK','A past event that stays visible', current_date - 20, 'Nairobi', 'published', '00000000-0000-4000-8000-0000000000a1');
+insert into public.announcements (title, kind, body, status, created_by) values
+  ('zz news published','News','This is a published announcement.','published','00000000-0000-4000-8000-0000000000a1'),
+  ('zz news draft','Announcement','This announcement is still a draft.','draft','00000000-0000-4000-8000-0000000000a1');
+
+set local role anon;
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+select zz_rls_test.val('003 public: sees published events only (incl. past ones)',
+  $q$select count(*)::text from public.events where title like 'zz ev%'$q$, '2');
+select zz_rls_test.val('003 public: draft event hidden',
+  $q$select count(*)::text from public.events where title = 'zz ev draft'$q$, '0');
+select zz_rls_test.val('003 public: sees published announcements only',
+  $q$select count(*)::text from public.announcements where title like 'zz news%'$q$, '1');
+select zz_rls_test.denied('003 public: cannot read events.created_by',
+  $q$select created_by from public.events$q$, 'permission denied');
+select zz_rls_test.denied('003 public: cannot read announcements.created_by',
+  $q$select created_by from public.announcements$q$, 'permission denied');
+select zz_rls_test.denied('003 public: cannot insert an event',
+  $q$insert into public.events (title, description, event_date, venue) values ('zz x','long enough text', current_date, 'v')$q$, 'permission denied');
+select zz_rls_test.denied('003 public: cannot insert an announcement',
+  $q$insert into public.announcements (title, body) values ('zz x','long enough body text')$q$, 'permission denied');
+select zz_rls_test.denied('003 public: cannot update an event',
+  $q$update public.events set title = 'zz hacked'$q$, 'permission denied');
+select zz_rls_test.denied('003 public: cannot delete an announcement',
+  $q$delete from public.announcements$q$, 'permission denied');
+reset role;
+
+-- editor (a2): no write power over events/announcements, and sees only published ones
+set local role authenticated;
+select set_config('request.jwt.claims', '{"role":"authenticated","sub":"00000000-0000-4000-8000-0000000000a2"}', true);
+select zz_rls_test.val('003 editor: reads published events only',
+  $q$select count(*)::text from public.events where title like 'zz ev%'$q$, '2');
+select zz_rls_test.denied('003 editor: cannot create an event',
+  $q$insert into public.events (title, description, event_date, venue, created_by) values ('zz e','long enough text', current_date, 'v', '00000000-0000-4000-8000-0000000000a2')$q$, 'row-level security');
+select zz_rls_test.rows('003 editor: cannot update an event (0 rows)',
+  $q$update public.events set title = 'zz hacked' where title = 'zz ev published'$q$, 0);
+select zz_rls_test.rows('003 editor: cannot delete an announcement (0 rows)',
+  $q$delete from public.announcements where title = 'zz news published'$q$, 0);
+reset role;
+
+-- outsider (a4, no role): same as the public
+set local role authenticated;
+select set_config('request.jwt.claims', '{"role":"authenticated","sub":"00000000-0000-4000-8000-0000000000a4"}', true);
+select zz_rls_test.val('003 outsider: sees published events only',
+  $q$select count(*)::text from public.events where title like 'zz ev%'$q$, '2');
+select zz_rls_test.denied('003 outsider: cannot create an announcement',
+  $q$insert into public.announcements (title, body, created_by) values ('zz o','long enough body text','00000000-0000-4000-8000-0000000000a4')$q$, 'row-level security');
+reset role;
+
+-- admin (a1): full control, server-controlled fields, constraints
+set local role authenticated;
+select set_config('request.jwt.claims', '{"role":"authenticated","sub":"00000000-0000-4000-8000-0000000000a1"}', true);
+select zz_rls_test.val('003 admin: sees drafts too',
+  $q$select count(*)::text from public.events where title like 'zz ev%'$q$, '3');
+select zz_rls_test.ok('003 admin: can create an event',
+  $q$insert into public.events (title, association, description, event_date, start_time, end_time, online_url, created_by, status) values ('zz ev new','ASA KU','Online workshop for everyone', current_date + 9, '14:00', '16:00', 'https://meet.example/abc', '00000000-0000-4000-8000-0000000000a1', 'published')$q$);
+select zz_rls_test.denied('003 admin: event needs a venue or online link',
+  $q$insert into public.events (title, description, event_date, created_by) values ('zz noplace','long enough text', current_date, '00000000-0000-4000-8000-0000000000a1')$q$, 'events_place_ck');
+select zz_rls_test.denied('003 admin: end time cannot be before start time',
+  $q$insert into public.events (title, description, event_date, start_time, end_time, venue, created_by) values ('zz time','long enough text', current_date, '15:00','14:00','v','00000000-0000-4000-8000-0000000000a1')$q$, 'events_time_order_ck');
+select zz_rls_test.denied('003 admin: unknown association rejected',
+  $q$insert into public.events (title, association, description, event_date, venue, created_by) values ('zz assoc','Evil Corp','long enough text', current_date, 'v','00000000-0000-4000-8000-0000000000a1')$q$, 'check constraint');
+select zz_rls_test.denied('003 admin: http image link rejected',
+  $q$insert into public.events (title, description, event_date, venue, image_url, created_by) values ('zz img','long enough text', current_date, 'v','http://x.example/a.png','00000000-0000-4000-8000-0000000000a1')$q$, 'check constraint');
+select zz_rls_test.rows('003 admin: can unpublish an event',
+  $q$update public.events set status = 'draft' where title = 'zz ev published'$q$, 1);
+select zz_rls_test.rows('003 admin: can publish an announcement',
+  $q$update public.announcements set status = 'published' where title = 'zz news draft'$q$, 1);
+select zz_rls_test.rows('003 admin: can delete an event',
+  $q$delete from public.events where title = 'zz ev past'$q$, 1);
+select zz_rls_test.rows('003 admin: can delete an announcement',
+  $q$delete from public.announcements where title = 'zz news published'$q$, 1);
+reset role;
+select zz_rls_test.log('003 trigger: published_at set when an announcement is first published',
+  (select published_at is not null from public.announcements where title = 'zz news draft'), '');
+select zz_rls_test.log('003 trigger: authorship cannot change',
+  (select created_by = '00000000-0000-4000-8000-0000000000a1' from public.events where title = 'zz ev new'), '');
+
+set local role anon;
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+select zz_rls_test.val('003 public: unpublished event disappears at once',
+  $q$select count(*)::text from public.events where title = 'zz ev published'$q$, '0');
+select zz_rls_test.val('003 public: newly published event appears',
+  $q$select count(*)::text from public.events where title = 'zz ev new'$q$, '1');
 reset role;
 
 -- ---------------------------------------------------------------------------

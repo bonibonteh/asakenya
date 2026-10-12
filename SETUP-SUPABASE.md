@@ -2,16 +2,17 @@
 
 You do this once. After that, officials add opportunities at `/admin.html` and nothing needs redeploying.
 
-Status: the SQL passed 106 automated checks on a local Postgres, and the admin page and Graduate Hub passed browser tests against a mock server. **Nothing has been tested against your real Supabase project yet. Step 9 is that test; please do it.**
+Status: the SQL passed 135 automated checks on a local Postgres, and the admin dashboard, Graduate Hub, events and announcements passed browser tests against a mock server. **Nothing has been tested against your real Supabase project yet. Step 9 is that test; please do it.**
 
 ## 1. Run the SQL (safe to repeat)
 1. Supabase dashboard, open your project, then **SQL Editor**, then **New query**.
 2. Paste the whole of `supabase/migrations/001_opportunities_and_roles.sql` and press **Run**. Expect "Success".
 3. New query: paste `supabase/migrations/002_graduate_hub.sql` and **Run**.
+4. New query: paste `supabase/migrations/003_events_and_announcements.sql` and **Run** (events and announcements for the dashboard).
 Both files can be run again without harm. They create tables with Row Level Security (RLS) switched on, so the public can only read published opportunities and approved portfolios.
 
 ## 2. Check the security rules (optional, recommended)
-Paste `supabase/tests/rls_checks.sql` into the SQL Editor and run it. It makes test users inside a transaction and **always rolls back**, so it leaves no data. The result appears as a red error message beginning "ALL n CHECKS PASSED". That wording is expected. If it says "x OF n CHECKS FAILED", send me the list. (The test file needs the local stub only on a laptop; on Supabase it uses the real `auth` schema. If it complains about test users, skip it and rely on step 9.)
+Paste `supabase/tests/rls_checks.sql` (run it after 001, 002 and 003) into the SQL Editor and run it. It makes test users inside a transaction and **always rolls back**, so it leaves no data. The result appears as a red error message beginning "ALL n CHECKS PASSED". That wording is expected. If it says "x OF n CHECKS FAILED", send me the list. (The test file needs the local stub only on a laptop; on Supabase it uses the real `auth` schema. If it complains about test users, skip it and rely on step 9.)
 
 ## 3. Turn off public sign-ups
 **Authentication, then Sign In / Providers (or Settings)**: switch **Allow new users to sign up** off. Keep **Email** enabled. This stops strangers creating accounts. Staff accounts are created by you in step 4.
@@ -30,7 +31,7 @@ select id, 'admin' from auth.users where email = 'YOUR-EMAIL@example.com';
 insert into public.staff_roles (user_id, role)
 select id, 'editor' from auth.users where email = 'OFFICIAL@example.com';
 ```
-Roles: **editor** adds and edits their own drafts and submits for approval. **admin** approves, publishes, archives, deletes, and sees sign-ups. Nobody can promote themselves; only this SQL does it.
+Roles: **editor** adds and edits their own opportunity drafts and submits them for approval. **admin** approves, publishes, unpublishes, archives and deletes opportunities, manages events and announcements, and sees sign-ups and portfolios. Nobody can promote themselves; only this SQL does it.
 
 ## 6. Storage (poster and PDF uploads)
 Migration 001 creates the public bucket `opportunity-files` (5 MB limit; JPEG, PNG, WebP and PDF only) and its policies. Check under **Storage**: the bucket should exist. Uploads go to `<user id>/<random name>`. Users can only upload into their own folder.
@@ -62,3 +63,11 @@ The site does **not** send emails, and says so on the page. The sign-up list rec
 - "You do not have permission": the account has no role (step 5), or an editor tried an admin action.
 - Password reset email: set **Authentication, then URL Configuration, then Site URL** to your site address.
 - Upload refused: file over 5 MB or not JPG, PNG, WebP or PDF.
+
+## The dashboard
+Open `https://asakenya.netlify.app/admin` (it redirects to `/admin/login` when you are signed out). Menu: Overview (statistics), Opportunities, Add opportunity, Events, Announcements, Sign-ups and portfolios. Events and announcements are administrator-only. The login page is not linked from the public site and is marked noindex.
+What appears on the public site, with no redeploy:
+- Published **opportunities** in the Student Hub and the Graduate Hub finder.
+- Published **events** on the Events page (they sit alongside the events already built into the site).
+- Published **announcements** in the Journal section.
+Drafts, pending and archived items are never public. Unpublish or archive removes an item from the site at once.

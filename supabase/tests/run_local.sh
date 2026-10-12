@@ -9,8 +9,10 @@ P="$P -d asa_test"
 $P -f $D/tests/local_stub.sql
 $P -f $D/migrations/001_opportunities_and_roles.sql
 $P -f $D/migrations/002_graduate_hub.sql
+$P -f $D/migrations/003_events_and_announcements.sql
 echo "== second run (idempotency) =="
 $P -f $D/migrations/001_opportunities_and_roles.sql
 $P -f $D/migrations/002_graduate_hub.sql
+$P -f $D/migrations/003_events_and_announcements.sql
 shift 2
 for f in "$@"; do $P -f "$f"; done

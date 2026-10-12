@@ -13,7 +13,7 @@
   var STATUS_LABEL = { draft: 'Draft', pending: 'Awaiting approval', published: 'Published', archived: 'Archived' };
   var MAX = 5 * 1024 * 1024, TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'application/pdf': 'pdf' };
 
-  var S = { session: null, role: null, rows: [], filter: { q: '', status: 'all', cat: 'all' } };
+  var S = { session: null, role: null, page: 0, rows: [], filter: { q: '', status: 'all', cat: 'all' } };
 
   function esc(x) { return x == null ? '' : String(x).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function mk(html) { var d = document.createElement('div'); d.innerHTML = html; return d.firstElementChild; }
@@ -54,6 +54,7 @@
 
   /* ---------------- login ---------------- */
   function renderLogin(note) {
+    setPath('/admin/login');
     app.innerHTML = '<div class="login card"><h2>Log in</h2><p class="note">For ASA Kenya officials. Accounts are created by an administrator; there is no public sign-up.</p>' +
       (note ? '<p class="m er" style="padding:10px">' + esc(note.text) + '</p>' : '') +
       '<form id="lf"><label>Email<input type="email" name="email" autocomplete="username" required></label><label>Password<input type="password" name="password" autocomplete="current-password" required></label><button class="btn" type="submit">Log in</button></form>' +
@@ -89,20 +90,26 @@
     } catch (e) { if (!e.handled) { say(fmtErr(e), true); renderLogin(); } return; }
     $('#who').textContent = S.session.user.email + (S.role ? ' (' + S.role + ')' : '');
     $('#out').hidden = false;
-    if (!S.role) { app.innerHTML = '<div class="card"><h2>No access yet</h2><p>You are logged in as ' + esc(S.session.user.email) + ', but this account has not been given access. Ask an ASA Kenya administrator to add you, then log in again.</p></div>'; return; }
+    if (!S.role) { app.innerHTML = '<div class="card"><h2>No access yet</h2><p>You are logged in as ' + esc(S.session.user.email) + ', but this account has not been given access. Ask an ASA Kenya administrator to add you, then log in again.</p><p class="note">You will be taken back to the website in a few seconds.</p></div>'; setTimeout(function () { if (!S.role && /^\/admin(\/|$)/.test(location.pathname)) location.href = '/'; }, 6000); return; }
     S.admin = S.role === 'admin'; route();
   }
   function isAdmin() { return S.role === 'admin'; }
 
   /* ---------------- routing between views ---------------- */
   function nav(active) {
-    var b = [['list', 'Opportunities'], ['new', 'Add opportunity']];
-    if (isAdmin()) b.push(['people', 'Sign-ups and portfolios']);
-    return '<div class="nav">' + b.map(function (x) { return '<button type="button" class="btn ' + (x[0] === active ? '' : 'o') + ' s" data-v="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>';
+    var b = [['home', 'Overview'], ['list', 'Opportunities'], ['new', 'Add opportunity']];
+    if (isAdmin()) b.push(['events', 'Events'], ['news', 'Announcements'], ['people', 'Sign-ups and portfolios']);
+    /* The two wrapper divs are closed by the browser at the end of the page fragment. */
+    return '<div class="shell"><aside class="side" aria-label="Dashboard menu">' + b.map(function (x) { return '<button type="button" class="' + (x[0] === active ? 'on' : '') + '" data-v="' + x[0] + '"' + (x[0] === active ? ' aria-current="page"' : '') + '>' + x[1] + '</button>'; }).join('') + '</aside><div class="main">';
   }
   function bindNav() { app.querySelectorAll('[data-v]').forEach(function (b) { b.onclick = function () { go(b.dataset.v); }; }); }
-  function go(v, arg) { say(''); if (v === 'list') return viewList(); if (v === 'new') return viewForm(null); if (v === 'edit') return viewForm(arg); if (v === 'people') return viewPeople('interest'); }
-  function route() { viewList(); }
+  function go(v, arg) {
+    say('');
+    if (v === 'home') return viewHome(); if (v === 'list') return viewList(); if (v === 'new') return viewForm(null); if (v === 'edit') return viewForm(arg);
+    if (v === 'people') return viewPeople('interest'); if (v === 'events' || v === 'news') return viewContent(v);
+  }
+  function route() { setPath('/admin'); viewHome(); }
+  function setPath(p) { try { if (/^\/admin(\/|$)/.test(location.pathname) && location.pathname.replace(/\/$/, '') !== p) history.replaceState(null, '', p); } catch (e) { } }
 
   /* ---------------- list ---------------- */
   async function loadRows() {
@@ -122,6 +129,8 @@
       if (f.cat !== 'all' && r.category !== f.cat) return false;
       var q = f.q.toLowerCase(); return !q || (r.title + ' ' + r.organisation + ' ' + (r.location || '')).toLowerCase().indexOf(q) >= 0;
     });
+    var total = rows.length, per = 15, pages = Math.max(1, Math.ceil(total / per)); if (S.page >= pages) S.page = pages - 1; if (S.page < 0) S.page = 0;
+    rows = rows.slice(S.page * per, S.page * per + per);
     var tabs = [['all', 'All']].concat(STATUS.map(function (s) { return [s, STATUS_LABEL[s]]; })).map(function (t) { return '<button type="button" data-s="' + t[0] + '" aria-pressed="' + (f.status === t[0]) + '">' + t[1] + ' (' + c[t[0]] + ')</button>'; }).join('');
     var h = nav('list') + '<h2>Opportunities</h2>' + (isAdmin() ? '' : '<p class="note">You can add opportunities and submit them for approval. An administrator publishes them.</p>') +
       '<div class="tabs" role="group" aria-label="Status">' + tabs + '</div>' +
@@ -134,17 +143,18 @@
       if (!isAdmin() && r.status === 'draft' && canEdit(r)) a.push('<button class="btn s" data-a="submit" data-id="' + esc(r.id) + '">Submit for approval</button>');
       if (isAdmin()) {
         if (r.status === 'pending' || r.status === 'draft') a.push('<button class="btn s" data-a="publish" data-id="' + esc(r.id) + '">' + (r.status === 'pending' ? 'Approve and publish' : 'Publish') + '</button>');
+        if (r.status === 'published') a.push('<button class="btn o s" data-a="unpublish" data-id="' + esc(r.id) + '">Unpublish</button>');
         if (r.status === 'published') a.push('<button class="btn o s" data-a="archive" data-id="' + esc(r.id) + '">Archive</button>');
         if (r.status === 'archived') a.push('<button class="btn o s" data-a="restore" data-id="' + esc(r.id) + '">Restore to draft</button>');
         a.push('<button class="btn d s" data-a="delete" data-id="' + esc(r.id) + '">Delete</button>');
       }
       var exp = r.deadline && r.deadline < new Date().toISOString().slice(0, 10);
       return '<tr><td><b>' + esc(r.title) + '</b><br><span class="note">' + esc(r.organisation) + '</span></td><td>' + esc(r.category) + '<br><span class="note">' + esc(r.audience) + '</span></td><td><span class="st ' + esc(r.status) + '">' + esc(STATUS_LABEL[r.status] || r.status) + '</span>' + (exp ? '<br><span class="note">Expired (hidden from site)</span>' : '') + '</td><td>' + esc(r.deadline || '') + '</td><td>' + esc((r.updated_at || '').slice(0, 10)) + '</td><td><div class="acts">' + a.join('') + '</div></td></tr>';
-    }).join('') + '</tbody></table></div>';
-    app.innerHTML = h; bindNav();
-    app.querySelectorAll('.tabs button').forEach(function (b) { b.onclick = function () { S.filter.status = b.dataset.s; drawList(); }; });
-    var q = $('#q'); q.oninput = function () { S.filter.q = q.value.trim(); var p = q.selectionStart; drawList(); var n = $('#q'); n.focus(); n.setSelectionRange(p, p); };
-    $('#cf').onchange = function (e) { S.filter.cat = e.target.value; drawList(); };
+    }).join('') + '</tbody></table></div>' + pager(S.page, pages, total);
+    app.innerHTML = h; bindNav(); bindPager(function (p) { S.page = p; drawList(); });
+    app.querySelectorAll('.tabs button').forEach(function (b) { b.onclick = function () { S.filter.status = b.dataset.s; S.page = 0; drawList(); }; });
+    var q = $('#q'); q.oninput = function () { S.filter.q = q.value.trim(); S.page = 0; var p = q.selectionStart; drawList(); var n = $('#q'); n.focus(); n.setSelectionRange(p, p); };
+    $('#cf').onchange = function (e) { S.filter.cat = e.target.value; S.page = 0; drawList(); };
     app.querySelectorAll('[data-a]').forEach(function (b) { b.onclick = function () { rowAction(b.dataset.a, b.dataset.id, b); }; });
   }
   function find(id) { return S.rows.filter(function (r) { return r.id === id; })[0]; }
@@ -160,6 +170,7 @@
     if (a === 'submit') return setStatus(id, 'pending', 'Submitted for approval.', btn);
     if (a === 'publish') return viewPreview(r, { back: 'list', publishId: id });
     if (a === 'archive') { if (confirm('Archive "' + r.title + '"? It will disappear from the website.')) setStatus(id, 'archived', 'Archived. It is no longer on the website.', btn); return; }
+    if (a === 'unpublish') { if (confirm('Unpublish "' + r.title + '"? It will go back to draft and disappear from the website.')) setStatus(id, 'draft', 'Unpublished. It is now a draft.', btn); return; }
     if (a === 'restore') return setStatus(id, 'draft', 'Restored to draft.', btn);
     if (a === 'delete') {
       if (!confirm('Delete "' + r.title + '" permanently? This cannot be undone.')) return;
@@ -332,6 +343,218 @@
           .catch(function (e) { if (!e.handled) say(fmtErr(e), true); b.disabled = false; });
       };
     });
+  }
+
+  /* ---------------- shared helpers (pager, dates, uploads) ---------------- */
+  function pager(page, pages, total) {
+    if (total <= 15) return '<p class="note">' + total + ' item' + (total === 1 ? '' : 's') + '</p>';
+    return '<div class="pager"><button type="button" class="btn o s" data-pg="' + (page - 1) + '"' + (page <= 0 ? ' disabled' : '') + '>Previous</button><span>Page ' + (page + 1) + ' of ' + pages + ' (' + total + ' items)</span><button type="button" class="btn o s" data-pg="' + (page + 1) + '"' + (page >= pages - 1 ? ' disabled' : '') + '>Next</button></div>';
+  }
+  function bindPager(fn) { app.querySelectorAll('[data-pg]').forEach(function (b) { b.onclick = function () { fn(parseInt(b.dataset.pg, 10)); }; }); }
+  function today() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function fmtDate(iso) { if (!iso) return ''; var p = String(iso).slice(0, 10).split('-'); var d = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])); return isNaN(d) ? esc(iso) : d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }); }
+  function fmtTime(t) { if (!t) return ''; var p = String(t).split(':'), h = +p[0], m = p[1] || '00'; return (h % 12 || 12) + ':' + m + ' ' + (h < 12 ? 'AM' : 'PM'); }
+  async function uploadFile(file) {
+    if (!file) return null;
+    var path = S.session.user.id + '/' + (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2)) + '.' + TYPES[file.type];
+    await api(function (t) { return DB.request('/storage/v1/object/' + (C.OPPORTUNITY_BUCKET || 'opportunity-files') + '/' + path, { method: 'POST', token: t, body: file, raw: true, timeout: 60000, headers: { 'Content-Type': file.type, 'x-upsert': 'false' } }); });
+    return DB.publicFileUrl(path);
+  }
+
+  /* ---------------- overview ---------------- */
+  async function viewHome() {
+    setPath('/admin');
+    app.innerHTML = nav('home') + '<h2>Overview</h2><p>Loading...</p>'; bindNav();
+    try {
+      await loadRows();
+      var ev = [], an = [], pf = [], gi = [], al = [];
+      if (isAdmin()) {
+        var sel = function (tb, q) { return api(function (t) { return DB.select(tb, q, t); }).then(function (r) { return r || []; }); };
+        var all = await Promise.all([sel('events', 'select=id,status,event_date&limit=1000'), sel('announcements', 'select=id,status&limit=1000'), sel('portfolio_submissions', 'select=id,status&limit=1000'), sel('graduate_interest', 'select=id&limit=1000'), sel('alert_subscriptions', 'select=id&limit=1000')]);
+        ev = all[0]; an = all[1]; pf = all[2]; gi = all[3]; al = all[4];
+      }
+    } catch (e) { if (!e.handled) { app.innerHTML = nav('home') + '<div class="card"><b>Could not load the overview.</b><p>' + esc(fmtErr(e)) + '</p></div>'; bindNav(); } return; }
+    var c = counts(), t0 = today(), exp = S.rows.filter(function (r) { return r.status === 'published' && r.deadline && r.deadline < t0; }).length;
+    function stat(n, label, v, tone) { return '<button type="button" class="stat ' + (tone || '') + '" data-v="' + v + '"><b>' + n + '</b><span>' + label + '</span></button>'; }
+    var h = nav('home') + '<h2>Overview</h2><p class="note">Signed in as ' + esc(S.session.user.email) + ' (' + esc(S.role) + ').</p>';
+    if (isAdmin()) {
+      var evUp = ev.filter(function (e) { return e.status === 'published' && e.event_date >= t0; }).length;
+      var pend = c.pending, pfp = pf.filter(function (p) { return p.status === 'pending'; }).length;
+      if (pend || pfp) h += '<div class="card attn"><b>Needs your attention</b><br>' + (pend ? pend + ' opportunit' + (pend === 1 ? 'y is' : 'ies are') + ' awaiting approval. ' : '') + (pfp ? pfp + ' portfolio' + (pfp === 1 ? '' : 's') + ' to review.' : '') + '</div>';
+      h += '<h3>Opportunities</h3><div class="stats">' + stat(c.published, 'Published', 'list') + stat(c.pending, 'Awaiting approval', 'list', c.pending ? 'hot' : '') + stat(c.draft, 'Drafts', 'list') + stat(c.archived, 'Archived', 'list') + stat(exp, 'Published but past deadline', 'list') + '</div>' +
+        '<h3>Events</h3><div class="stats">' + stat(evUp, 'Upcoming (published)', 'events') + stat(ev.filter(function (e) { return e.status === 'published' && e.event_date < t0; }).length, 'Past (published)', 'events') + stat(ev.filter(function (e) { return e.status === 'draft'; }).length, 'Drafts', 'events') + '</div>' +
+        '<h3>Announcements</h3><div class="stats">' + stat(an.filter(function (e) { return e.status === 'published'; }).length, 'Published', 'news') + stat(an.filter(function (e) { return e.status === 'draft'; }).length, 'Drafts', 'news') + '</div>' +
+        '<h3>Graduate hub</h3><div class="stats">' + stat(gi.length, 'Network sign-ups', 'people') + stat(al.length, 'Alert interest', 'people') + stat(pfp, 'Portfolios to review', 'people', pfp ? 'hot' : '') + '</div>';
+    } else {
+      h += '<p class="note">You can add opportunities and submit them for approval. An administrator publishes them.</p><h3>Your opportunities</h3><div class="stats">' + stat(c.draft, 'Drafts', 'list') + stat(c.pending, 'Awaiting approval', 'list') + stat(c.published, 'Published', 'list') + '</div><p><button type="button" class="btn" data-v="new">Add an opportunity</button></p>';
+    }
+    app.innerHTML = h; bindNav();
+  }
+
+  /* ---------------- events and announcements (administrators) ---------------- */
+  var ASSOCS = ['ASA Kenya', 'ASA TUK', 'ASA KU', 'ASA JKUAT', 'ASA UoN', 'ASA TUM'];
+  var CT = {
+    events: {
+      table: 'events', one: 'event', many: 'Events', order: 'event_date.desc',
+      fields: [
+        { k: 'title', label: 'Event title', type: 'text', max: 200 },
+        { k: 'association', label: 'Organised by', type: 'select', opts: ASSOCS },
+        { k: 'event_date', label: 'Date', type: 'date' },
+        { k: 'start_time', label: 'Start time (optional)', type: 'time', half: 1 },
+        { k: 'end_time', label: 'End time (optional)', type: 'time', half: 1 },
+        { k: 'venue', label: 'Venue (optional if online)', type: 'text', max: 300 },
+        { k: 'online_url', label: 'Online meeting link (optional)', type: 'url', help: 'Must start with https://' },
+        { k: 'registration_url', label: 'Registration link (optional)', type: 'url', help: 'Must start with https://' },
+        { k: 'description', label: 'Description', type: 'textarea', max: 5000, help: '10 to 5000 characters. Plain text.' }
+      ]
+    },
+    news: {
+      table: 'announcements', one: 'announcement', many: 'Announcements', order: 'created_at.desc',
+      fields: [
+        { k: 'title', label: 'Title', type: 'text', max: 200 },
+        { k: 'kind', label: 'Type', type: 'select', opts: ['Announcement', 'News', 'Update'] },
+        { k: 'body', label: 'Text', type: 'textarea', max: 8000, help: '10 to 8000 characters. Plain text; line breaks are kept.' }
+      ]
+    }
+  };
+  var CS = { events: { rows: [], q: '', status: 'all', when: 'all', page: 0 }, news: { rows: [], q: '', status: 'all', when: 'all', page: 0 } };
+  var CSTAT = { draft: 'Draft', published: 'Published', archived: 'Archived' };
+
+  async function viewContent(key) {
+    if (!isAdmin()) { say('Only administrators can manage this.', true); return viewHome(); }
+    var cfg = CT[key], st = CS[key];
+    app.innerHTML = nav(key) + '<h2>' + cfg.many + '</h2><p>Loading...</p>'; bindNav();
+    try { st.rows = await api(function (t) { return DB.select(cfg.table, 'select=*&order=' + cfg.order + '&limit=500', t); }) || []; }
+    catch (e) { if (!e.handled) { app.innerHTML = nav(key) + '<div class="card"><b>Could not load ' + cfg.many.toLowerCase() + '.</b><p>' + esc(fmtErr(e)) + '</p></div>'; bindNav(); } return; }
+    drawContent(key);
+  }
+  function drawContent(key) {
+    var cfg = CT[key], st = CS[key], t0 = today(), c = { all: st.rows.length };
+    Object.keys(CSTAT).forEach(function (s) { c[s] = st.rows.filter(function (r) { return r.status === s; }).length; });
+    var rows = st.rows.filter(function (r) {
+      if (st.status !== 'all' && r.status !== st.status) return false;
+      if (key === 'events' && st.when === 'upcoming' && r.event_date < t0) return false;
+      if (key === 'events' && st.when === 'past' && r.event_date >= t0) return false;
+      var q = st.q.toLowerCase(); return !q || (r.title + ' ' + (r.venue || '') + ' ' + (r.association || r.kind || '')).toLowerCase().indexOf(q) >= 0;
+    });
+    var total = rows.length, per = 15, pages = Math.max(1, Math.ceil(total / per)); if (st.page >= pages) st.page = pages - 1; rows = rows.slice(st.page * per, st.page * per + per);
+    var tabs = [['all', 'All']].concat(Object.keys(CSTAT).map(function (s) { return [s, CSTAT[s]]; })).map(function (t) { return '<button type="button" data-s="' + t[0] + '" aria-pressed="' + (st.status === t[0]) + '">' + t[1] + ' (' + c[t[0]] + ')</button>'; }).join('');
+    var h = nav(key) + '<h2>' + cfg.many + '</h2><p><button class="btn" type="button" data-new="1">Add ' + cfg.one + '</button></p><div class="tabs" role="group" aria-label="Status">' + tabs + '</div>' +
+      '<div class="tools"><label class="grow">Search<input id="q" type="search" value="' + esc(st.q) + '" placeholder="Title or venue"></label>' +
+      (key === 'events' ? '<label>When<select id="wf"><option value="all">All dates</option><option value="upcoming"' + (st.when === 'upcoming' ? ' selected' : '') + '>Upcoming</option><option value="past"' + (st.when === 'past' ? ' selected' : '') + '>Past</option></select></label>' : '') + '</div>';
+    if (!rows.length) h += '<div class="card"><b>' + (st.rows.length ? 'Nothing matches those filters.' : 'No ' + cfg.many.toLowerCase() + ' yet.') + '</b></div>';
+    else h += '<div class="tw"><table><thead><tr><th>Title</th><th>' + (key === 'events' ? 'Date' : 'Type') + '</th><th>Status</th><th>Updated</th><th>Actions</th></tr></thead><tbody>' + rows.map(function (r) {
+      var a = ['<button class="btn o s" data-a="preview" data-id="' + esc(r.id) + '">Preview</button>', '<button class="btn o s" data-a="edit" data-id="' + esc(r.id) + '">Edit</button>'];
+      if (r.status === 'published') a.push('<button class="btn o s" data-a="unpublish" data-id="' + esc(r.id) + '">Unpublish</button>');
+      else a.push('<button class="btn s" data-a="publish" data-id="' + esc(r.id) + '">Publish</button>');
+      if (r.status !== 'archived') a.push('<button class="btn o s" data-a="archive" data-id="' + esc(r.id) + '">Archive</button>');
+      a.push('<button class="btn d s" data-a="delete" data-id="' + esc(r.id) + '">Delete</button>');
+      var when = key === 'events' ? esc(fmtDate(r.event_date)) + (r.start_time ? '<br><span class="note">' + esc(fmtTime(r.start_time)) + '</span>' : '') + (r.event_date < t0 ? ' <span class="st archived">Past</span>' : '') : esc(r.kind);
+      return '<tr><td><b>' + esc(r.title) + '</b>' + (key === 'events' ? '<br><span class="note">' + esc(r.association) + '</span>' : '') + '</td><td>' + when + '</td><td><span class="st ' + esc(r.status) + '">' + esc(CSTAT[r.status] || r.status) + '</span></td><td>' + esc(String(r.updated_at || '').slice(0, 10)) + '</td><td><div class="acts">' + a.join('') + '</div></td></tr>';
+    }).join('') + '</tbody></table></div>' + pager(st.page, pages, total);
+    app.innerHTML = h; bindNav(); bindPager(function (p) { st.page = p; drawContent(key); });
+    app.querySelectorAll('.tabs button').forEach(function (b) { b.onclick = function () { st.status = b.dataset.s; st.page = 0; drawContent(key); }; });
+    var q = $('#q'); q.oninput = function () { st.q = q.value.trim(); st.page = 0; var p = q.selectionStart; drawContent(key); var n = $('#q'); n.focus(); n.setSelectionRange(p, p); };
+    var wf = $('#wf'); if (wf) wf.onchange = function () { st.when = wf.value; st.page = 0; drawContent(key); };
+    $('[data-new]', app).onclick = function () { contentForm(key, null); };
+    app.querySelectorAll('[data-a]').forEach(function (b) { b.onclick = function () { contentAction(key, b.dataset.a, b.dataset.id, b); }; });
+  }
+  function cfind(key, id) { return CS[key].rows.filter(function (r) { return r.id === id; })[0]; }
+  async function contentStatus(key, id, status, okText, btn) {
+    var cfg = CT[key]; if (btn) btn.disabled = true;
+    try { var o = await api(function (t) { return DB.update(cfg.table, 'id=eq.' + encodeURIComponent(id), { status: status }, t); }); if (!o || !o.length) throw new Error('Nothing was changed. You may not have permission.'); say(okText); await viewContent(key); }
+    catch (e) { if (!e.handled) say(fmtErr(e), true); if (btn) btn.disabled = false; }
+  }
+  function contentAction(key, a, id, btn) {
+    var cfg = CT[key], r = cfind(key, id); if (!r) return;
+    if (a === 'preview') return contentPreview(key, r, { onBack: function () { drawContent(key); } });
+    if (a === 'edit') return contentForm(key, r);
+    if (a === 'publish') return contentPreview(key, r, { onBack: function () { drawContent(key); }, publish: function (b) { return contentStatus(key, id, 'published', 'Published. It is now live on the website.', b); } });
+    if (a === 'unpublish') { if (confirm('Unpublish "' + r.title + '"? It will go back to draft and disappear from the website.')) contentStatus(key, id, 'draft', 'Unpublished. It is now a draft.', btn); return; }
+    if (a === 'archive') { if (confirm('Archive "' + r.title + '"? It will disappear from the website.')) contentStatus(key, id, 'archived', 'Archived.', btn); return; }
+    if (a === 'delete') {
+      if (!confirm('Delete "' + r.title + '" permanently? This cannot be undone.')) return;
+      btn.disabled = true;
+      api(function (t) { return DB.remove(cfg.table, 'id=eq.' + encodeURIComponent(id), t); }).then(function (o) { if (!o || !o.length) throw new Error('Nothing was deleted. You may not have permission.'); say('Deleted.'); return viewContent(key); })
+        .catch(function (e) { if (!e.handled) say(fmtErr(e), true); btn.disabled = false; });
+    }
+  }
+  function contentPreview(key, r, o) {
+    var body = '<div class="pv"><h3>' + esc(r.title) + '</h3>';
+    if (key === 'events') {
+      body += '<p><b>' + esc(fmtDate(r.event_date)) + (r.start_time ? ', ' + esc(fmtTime(r.start_time)) + (r.end_time ? ' to ' + esc(fmtTime(r.end_time)) : '') : '') + '</b><br>' + esc([r.venue, r.online_url ? 'Online' : ''].filter(Boolean).join(' and ')) + ' &middot; <span class="note">' + esc(r.association) + '</span></p><p style="white-space:pre-line">' + esc(r.description) + '</p>' + link(r.online_url, 'Join online') + link(r.registration_url, 'Register');
+    } else body += '<p class="note">' + esc(r.kind) + '</p><p style="white-space:pre-line">' + esc(r.body) + '</p>';
+    if (/^https:\/\//.test(r.image_url || '')) body += '<p><img src="' + esc(r.image_url) + '" alt="" style="max-width:100%;max-height:420px"></p>';
+    body += '</div><div class="acts" style="margin-top:14px"></div>';
+    app.innerHTML = nav(key) + '<h2>Preview</h2><p class="note">This is how it will look on the website' + (r.status === 'published' ? ' (it is already published).' : '. It is <b>not public</b> until you publish it.') + '</p>' + body; bindNav();
+    var box = $('.acts', app), back = mk('<button class="btn o" type="button">' + (o.backLabel || 'Back') + '</button>'); back.onclick = o.onBack; box.appendChild(back);
+    if (o.publish) { var pub = mk('<button class="btn" type="button">Confirm: publish to the website</button>'); pub.onclick = function () { pub.disabled = true; Promise.resolve(o.publish(pub)).catch(function () { pub.disabled = false; }); }; box.appendChild(pub); }
+  }
+  function contentForm(key, r, pre) {
+    var cfg = CT[key], isNew = !r, d = r || Object.assign({ association: 'ASA Kenya', kind: 'Announcement', status: 'draft' }, pre || {});
+    var inner = cfg.fields.map(function (f) {
+      var v = d[f.k] == null ? '' : String(d[f.k]); if (f.type === 'time') v = v.slice(0, 5);
+      var ctl = f.type === 'textarea' ? '<textarea name="' + f.k + '" rows="7" maxlength="' + f.max + '">' + esc(v) + '</textarea>'
+        : f.type === 'select' ? '<select name="' + f.k + '">' + f.opts.map(function (o) { return '<option' + (v === o ? ' selected' : '') + '>' + esc(o) + '</option>'; }).join('') + '</select>'
+        : '<input name="' + f.k + '" type="' + (f.type === 'url' ? 'url' : f.type) + '" value="' + esc(v) + '"' + (f.max ? ' maxlength="' + f.max + '"' : '') + (f.type === 'url' ? ' placeholder="https://"' : '') + '>';
+      return '<label>' + f.label + ctl + (f.help ? '<small>' + f.help + '</small>' : '') + '</label>';
+    }).join('');
+    app.innerHTML = nav(key) + '<h2>' + (isNew ? 'Add ' : 'Edit ') + cfg.one + '</h2><form class="f" id="cf" novalidate>' + inner +
+      '<label>Poster or image<input type="file" name="file" accept="image/jpeg,image/png,image/webp,application/pdf"><small>JPG, PNG, WebP or PDF, up to 5 MB. Or paste a link below.</small></label>' +
+      '<label>Poster or image link (optional)<input type="url" name="image_url" maxlength="2000" placeholder="https://" value="' + esc(d.image_url) + '"></label>' +
+      '<span id="fe" class="m er" role="alert" style="padding:0;color:#B5452A"></span><div class="acts" id="fa"></div></form>'; bindNav();
+    var f = $('#cf'), fa = $('#fa');
+    function btn(label, cls, fn) { var b = mk('<button type="button" class="btn ' + cls + '">' + label + '</button>'); b.onclick = function () { fn(b); }; fa.appendChild(b); return b; }
+    function read() { var v = {}; cfg.fields.concat([{ k: 'image_url' }]).forEach(function (x) { v[x.k] = f.elements[x.k].value.trim(); }); return v; }
+    function check(v) {
+      var https = /^https:\/\/[^\s]+$/i;
+      if (v.title.length < 3) return 'Add a title (at least 3 characters).';
+      if (key === 'events') {
+        if (!v.event_date) return 'Choose the event date.';
+        if (!v.venue && !v.online_url) return 'Add a venue or an online meeting link.';
+        if (v.start_time && v.end_time && v.end_time < v.start_time) return 'The end time must be after the start time.';
+        if (v.description.length < 10) return 'The description needs at least 10 characters.';
+        if (v.online_url && !https.test(v.online_url)) return 'The online link must start with https://';
+        if (v.registration_url && !https.test(v.registration_url)) return 'The registration link must start with https://';
+      } else if (v.body.length < 10) return 'The text needs at least 10 characters.';
+      if (v.image_url && !https.test(v.image_url)) return 'The image link must start with https://';
+      var file = f.elements.file.files[0];
+      if (file) { if (!TYPES[file.type]) return 'Only JPG, PNG, WebP or PDF files can be uploaded.'; if (file.size > MAX) return 'That file is larger than 5 MB.'; }
+      return '';
+    }
+    function payload(v) { var p = {}; cfg.fields.forEach(function (x) { p[x.k] = v[x.k] === '' && ['start_time', 'end_time', 'venue', 'online_url', 'registration_url'].indexOf(x.k) >= 0 ? null : v[x.k]; }); p.image_url = v.image_url || null; return p; }
+    async function persist(v, status, file) {
+      var up = await uploadFile(file), p = payload(v); if (up) p.image_url = up; p.status = status;
+      if (isNew) { p.created_by = S.session.user.id; await api(function (t) { return DB.insert(cfg.table, p, t); }); }
+      else { var o = await api(function (t) { return DB.update(cfg.table, 'id=eq.' + encodeURIComponent(r.id), p, t); }); if (!o || !o.length) throw new Error('Nothing was saved. You may not have permission.'); }
+    }
+    async function save(status, b, msg) {
+      $('#fe').textContent = ''; var v = read(), bad = check(v); if (bad) { $('#fe').textContent = bad; return; }
+      b.disabled = true; var label = b.textContent; b.textContent = 'Saving...';
+      try { await persist(v, status, f.elements.file.files[0]); say(msg); await viewContent(key); }
+      catch (e) { if (!e.handled) $('#fe').textContent = fmtErr(e); b.disabled = false; b.textContent = label; }
+    }
+    function again(v) { return function () { contentForm(key, isNew ? null : Object.assign({}, d, payload(v), { id: d.id }), isNew ? Object.assign(payload(v), { status: d.status }) : null); }; }
+    btn('Preview', 'o', function () {
+      var v = read(), bad = check(v); if (bad) { $('#fe').textContent = bad; return; }
+      contentPreview(key, Object.assign({}, d, payload(v), { image_url: f.elements.file.files[0] ? '' : v.image_url }), { backLabel: 'Back to editing', onBack: again(v) });
+    });
+    if (d.status === 'published') btn('Save changes', '', function (b) { save('published', b, 'Changes saved.'); });
+    else {
+      btn('Save draft', 'o', function (b) { save(d.status === 'archived' ? 'archived' : 'draft', b, 'Draft saved.'); });
+      btn('Preview and publish', '', function () {
+        var v = read(), bad = check(v); if (bad) { $('#fe').textContent = bad; return; }
+        var file = f.elements.file.files[0];
+        contentPreview(key, Object.assign({}, d, payload(v), { status: 'draft', image_url: file ? '' : v.image_url }), {
+          backLabel: 'Back to editing', onBack: again(v),
+          publish: async function (b) {
+            try { await persist(v, 'published', file); say('Published. It is now live on the website.'); await viewContent(key); }
+            catch (e) { if (!e.handled) say(fmtErr(e), true); throw e; }
+          }
+        });
+      });
+    }
+    btn('Cancel', 'o', function () { viewContent(key); });
   }
 
   /* ---------------- boot ---------------- */
