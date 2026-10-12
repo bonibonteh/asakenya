@@ -201,3 +201,12 @@ html.lenis,html.lenis body{height:auto}.lenis.lenis-smooth{scroll-behavior:auto!
 
 .sform{margin-top:34px;max-width:720px}.sform form{display:grid;gap:14px;margin-top:16px}
 #hub label.ck{display:flex;gap:10px;align-items:flex-start;font-weight:500}#hub label.ck input{width:auto;min-height:0;margin:.3em 0 0;flex:none}
+
+/* forms shown on demand */
+.gmodal{display:none}
+.gmodal.open{display:block;position:fixed;z-index:1001;top:5vh;left:50%;transform:translateX(-50%);width:min(660px,94vw);max-height:90vh;overflow:auto;margin:0;padding:24px;background:#fff;color:var(--ink);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.gback{position:fixed;inset:0;z-index:1000;background:rgba(10,46,26,.55)}.gback[hidden]{display:none}
+.gclose{position:sticky;top:0;float:right;width:40px;height:40px;margin:-10px -10px 0 0;border:0;background:none;font-size:2rem;line-height:1;cursor:pointer;color:var(--ink)}
+body.gm-lock{overflow:hidden}
+#hub .sform,#graduates .gform{max-width:none}
+@media(max-width:640px){.gmodal.open{top:0;left:0;transform:none;width:100%;max-height:100vh;height:100vh}}
