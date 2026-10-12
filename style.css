@@ -196,3 +196,5 @@ html.lenis,html.lenis body{height:auto}.lenis.lenis-smooth{scroll-behavior:auto!
 #graduates button.btn{font-family:var(--d)}
 #graduates label.ck{display:flex;gap:10px;align-items:flex-start;font-weight:500}#graduates label.ck input{width:auto;min-height:0;margin:.3em 0 0;flex:none}
 #graduates form .btn{justify-self:start}
+
+#lk a.adm{border:1.5px solid currentColor;padding:.25em .7em}
