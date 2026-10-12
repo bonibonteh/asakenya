@@ -73,3 +73,10 @@ What appears on the public site, with no redeploy:
 - Published **events** on the Events page (they sit alongside the events already built into the site).
 - Published **announcements** in the Journal section.
 Drafts, pending and archived items are never public. Unpublish or archive removes an item from the site at once.
+
+## Student Hub submissions (migration 005)
+Run `supabase/migrations/005_student_submissions.sql` in the SQL Editor (after 001-003; 004 is optional staff management). It creates the `student_submissions` table and a PRIVATE `student-submissions` bucket (5 MB; JPG, PNG, WebP, PDF).
+- Students submit from the Student Hub page ("Submit an opportunity"). Records start as pending and are visible only to administrators.
+- Admin: **Student submissions** in the sidebar. Open a submission, open or download its attachment (short-lived signed link), approve or reject, or "Create opportunity draft" to publish it through Opportunities. Approving alone never publishes.
+- Without migration 005 the admin section shows "not switched on yet" and the public form shows an unavailable message.
+- Category pages still use the contact form (Formspree) for their own "Submit" buttons.

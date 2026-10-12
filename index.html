@@ -49,7 +49,24 @@
 <label class="hs">Search the hub<input id="hq" type="search" placeholder="Competitions, internships, scholarships..." autocomplete="off"></label>
 <div class="tiles" id="ht" role="group" aria-label="Opportunity categories"></div>
 <h3 id="hh" style="margin-top:56px;scroll-margin-top:80px">All opportunities</h3><div id="ol" aria-live="polite" style="margin-top:14px"></div>
-<p><a class="btn" href="#contact" data-type="Submit an opportunity">Submit an opportunity</a></p><p class="note">Submissions are reviewed by ASA Kenya before they are published. Only verified opportunities are listed.</p></div></section>
+<p><button type="button" class="btn" data-go="s-submit">Submit an opportunity</button></p><p class="note">Submissions are reviewed by ASA Kenya before they are published. Only verified opportunities are listed.</p>
+<div class="cell gform sform" id="s-submit"><h3 style="margin:0 0 6px">Submit an opportunity</h3>
+<p class="note">Know of a competition, internship, scholarship or other opportunity for architecture students? Tell ASA Kenya. Nothing is published until an administrator has reviewed it. You can attach a poster or brief (JPG, PNG, WebP or PDF, up to 5 MB).</p>
+<form id="sform" novalidate>
+<label>Opportunity title<input name="title" maxlength="200" required></label>
+<label>Organisation offering it<input name="organisation" maxlength="200" required></label>
+<label>Category<select name="category" id="s-cat" required></select></label>
+<label>Description<textarea name="description" rows="5" maxlength="5000" required placeholder="What is it, who can apply, what do they get?"></textarea></label>
+<label>Location (optional)<input name="location" maxlength="200"></label>
+<label>Application deadline (optional)<input type="date" name="deadline"></label>
+<label>Application link (optional, https://)<input type="url" name="apply_url" maxlength="2000" placeholder="https://"></label>
+<label>Poster or document (optional)<input type="file" name="file" accept="image/jpeg,image/png,image/webp,application/pdf"></label>
+<label>Your name<input name="submitter_name" autocomplete="name" maxlength="120" required></label>
+<label>Your email (kept private)<input type="email" name="submitter_email" autocomplete="email" maxlength="254" required></label>
+<label>Your university<input name="university" maxlength="160" required></label>
+<input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+<label class="ck"><input type="checkbox" name="consent"> I confirm the details are accurate to the best of my knowledge, and I agree that ASA Kenya may store them and contact me about this submission. Details are visible only to ASA Kenya administrators until the opportunity is approved and published; my email and name are never published.</label>
+<span class="err" role="alert"></span><button class="btn" type="submit">Submit for review</button><div class="gok" role="status" hidden></div></form></div></div></section>
 
 <section id="graduates" data-tab="graduates"><div class="wrap">
 <p class="note" style="margin:0 0 10px">FOR GRADUATE ARCHITECTS</p><h2>Graduate Architects Hub</h2>
@@ -151,4 +168,4 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.18/dist/lenis.min.js"></script>
-<script src="config.js"></script><script src="supa.js"></script><script src="app.js"></script><script src="grad.js"></script></body></html>
+<script src="config.js"></script><script src="supa.js"></script><script src="app.js"></script><script src="grad.js"></script><script src="student.js"></script></body></html>

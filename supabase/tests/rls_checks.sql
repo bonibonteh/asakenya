@@ -465,6 +465,89 @@ select zz_rls_test.val('003 public: newly published event appears',
 reset role;
 
 -- ---------------------------------------------------------------------------
+-- MIGRATION 005: student submissions (public insert only; admin review) + private bucket
+-- ---------------------------------------------------------------------------
+reset role;
+insert into public.student_submissions (title, organisation, category, description, submitter_name, submitter_email, university, consent, status) values
+  ('zz ss pending','Org A','Internships','A pending submission description','Zed One','z1@x.co','UoN',true,'pending'),
+  ('zz ss other','Org B','Competitions','Another pending submission here','Zed Two','z2@x.co','KU',true,'pending');
+insert into storage.objects (bucket_id, name) values ('student-submissions','11111111-1111-4111-8111-111111111111/brief.pdf');
+
+set local role anon;
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+select zz_rls_test.ok('005 public: can submit (with attachment metadata)',
+  $q$insert into public.student_submissions (title, organisation, category, description, submitter_name, submitter_email, university, consent, attachment_path, attachment_name, attachment_type, attachment_size) values ('zz ss public','Org C','Jobs','Submitted from the Student Hub form','Zed Three','z3@x.co','TUK',true,'22222222-2222-4222-8222-222222222222/poster.pdf','poster.pdf','application/pdf',12345)$q$);
+select zz_rls_test.ok('005 public: can submit without attachment',
+  $q$insert into public.student_submissions (title, organisation, category, description, submitter_name, submitter_email, university, consent) values ('zz ss noatt','Org C','Jobs','Submitted without any attachment','Zed Four','z4@x.co','TUK',true)$q$);
+select zz_rls_test.denied('005 public: cannot choose the status (self-approve)',
+  $q$insert into public.student_submissions (title, organisation, category, description, submitter_name, submitter_email, university, consent, status) values ('zz ss sneak','Org','Jobs','Trying to approve myself here','Zed','z@x.co','TUK',true,'approved')$q$, 'permission denied');
+select zz_rls_test.denied('005 public: consent is required',
+  $q$insert into public.student_submissions (title, organisation, category, description, submitter_name, submitter_email, university, consent) values ('zz ss nc','Org','Jobs','Submitted without giving consent','Zed','z@x.co','TUK',false)$q$, 'row-level security');
+select zz_rls_test.denied('005 public: unknown category rejected',
+  $q$insert into public.student_submissions (title, organisation, category, description, submitter_name, submitter_email, university, consent) values ('zz ss cat','Org','Made Up','Submitted with an invented category','Zed','z@x.co','TUK',true)$q$, 'check constraint');
+select zz_rls_test.denied('005 public: http apply link rejected',
+  $q$insert into public.student_submissions (title, organisation, category, description, submitter_name, submitter_email, university, consent, apply_url) values ('zz ss url','Org','Jobs','Submitted with an insecure link','Zed','z@x.co','TUK',true,'http://x.example')$q$, 'check constraint');
+select zz_rls_test.denied('005 public: attachment path must be a safe uuid/name',
+  $q$insert into public.student_submissions (title, organisation, category, description, submitter_name, submitter_email, university, consent, attachment_path, attachment_type, attachment_size) values ('zz ss path','Org','Jobs','Submitted with a hostile file path','Zed','z@x.co','TUK',true,'../../etc/passwd','application/pdf',10)$q$, 'check constraint');
+select zz_rls_test.denied('005 public: attachment fields must come together',
+  $q$insert into public.student_submissions (title, organisation, category, description, submitter_name, submitter_email, university, consent, attachment_path) values ('zz ss half','Org','Jobs','Submitted with only half the file info','Zed','z@x.co','TUK',true,'33333333-3333-4333-8333-333333333333/a.pdf')$q$, 'student_submissions_attachment_ck');
+select zz_rls_test.denied('005 public: cannot read submissions',
+  $q$select * from public.student_submissions$q$, 'permission denied');
+select zz_rls_test.denied('005 public: cannot update submissions',
+  $q$update public.student_submissions set status = 'approved'$q$, 'permission denied');
+select zz_rls_test.denied('005 public: cannot delete submissions',
+  $q$delete from public.student_submissions$q$, 'permission denied');
+select zz_rls_test.ok('005 storage: public can upload a valid-named file to the private bucket',
+  $q$insert into storage.objects (bucket_id, name) values ('student-submissions','44444444-4444-4444-8444-444444444444/doc.pdf')$q$);
+select zz_rls_test.denied('005 storage: public cannot upload with a hostile name',
+  $q$insert into storage.objects (bucket_id, name) values ('student-submissions','../evil.pdf')$q$, 'row-level security');
+select zz_rls_test.denied('005 storage: public cannot upload outside the allowed folder pattern',
+  $q$insert into storage.objects (bucket_id, name) values ('student-submissions','plain.pdf')$q$, 'row-level security');
+select zz_rls_test.val('005 storage: public cannot list or read the private files',
+  $q$select count(*)::text from storage.objects where bucket_id = 'student-submissions'$q$, '0');
+reset role;
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"role":"authenticated","sub":"00000000-0000-4000-8000-0000000000a2"}', true);
+select zz_rls_test.val('005 editor: sees no student submissions',
+  $q$select count(*)::text from public.student_submissions$q$, '0');
+select zz_rls_test.rows('005 editor: cannot review (0 rows)',
+  $q$update public.student_submissions set status = 'approved' where title = 'zz ss pending'$q$, 0);
+select zz_rls_test.rows('005 editor: cannot delete (0 rows)',
+  $q$delete from public.student_submissions where title = 'zz ss pending'$q$, 0);
+select zz_rls_test.val('005 storage: editor cannot read private attachments',
+  $q$select count(*)::text from storage.objects where bucket_id = 'student-submissions'$q$, '0');
+reset role;
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"role":"authenticated","sub":"00000000-0000-4000-8000-0000000000a4"}', true);
+select zz_rls_test.val('005 outsider (no role): sees no submissions',
+  $q$select count(*)::text from public.student_submissions$q$, '0');
+select zz_rls_test.ok('005 outsider: can still submit through the form',
+  $q$insert into public.student_submissions (title, organisation, category, description, submitter_name, submitter_email, university, consent) values ('zz ss outsider','Org','Jobs','Submitted by a signed-in non-staff user','Zed','z5@x.co','KU',true)$q$);
+reset role;
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"role":"authenticated","sub":"00000000-0000-4000-8000-0000000000a1"}', true);
+select zz_rls_test.val('005 admin: sees every submission',
+  $q$select count(*)::text from public.student_submissions where title like 'zz ss%'$q$, '5');
+select zz_rls_test.val('005 storage: admin can see private attachments',
+  $q$select count(*)::text from storage.objects where bucket_id = 'student-submissions'$q$, '2');
+select zz_rls_test.rows('005 admin: can approve',
+  $q$update public.student_submissions set status = 'approved', review_note = 'Looks genuine' where title = 'zz ss pending'$q$, 1);
+select zz_rls_test.rows('005 admin: can reject',
+  $q$update public.student_submissions set status = 'rejected' where title = 'zz ss other'$q$, 1);
+select zz_rls_test.denied('005 admin: cannot rewrite what a student submitted',
+  $q$update public.student_submissions set title = 'zz tampered' where title = 'zz ss pending'$q$, 'permission denied');
+select zz_rls_test.rows('005 admin: can delete a submission',
+  $q$delete from public.student_submissions where title = 'zz ss noatt'$q$, 1);
+reset role;
+select zz_rls_test.log('005 trigger: review records who and when',
+  (select reviewed_by = '00000000-0000-4000-8000-0000000000a1' and reviewed_at is not null from public.student_submissions where title = 'zz ss pending'), '');
+select zz_rls_test.log('005 bucket is private',
+  (select public = false from storage.buckets where id = 'student-submissions'), '');
+
+-- ---------------------------------------------------------------------------
 -- REPORT. The error below is intentional: raising it makes the database undo the whole script.
 -- ---------------------------------------------------------------------------
 do $report$

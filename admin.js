@@ -98,7 +98,7 @@
   /* ---------------- routing between views ---------------- */
   function nav(active) {
     var b = [['home', 'Overview'], ['list', 'Opportunities'], ['new', 'Add opportunity']];
-    if (isAdmin()) b.push(['events', 'Events'], ['news', 'Announcements'], ['people', 'Sign-ups and portfolios'], ['staff', 'Staff and roles']);
+    if (isAdmin()) b.push(['subs', 'Student submissions'], ['events', 'Events'], ['news', 'Announcements'], ['people', 'Sign-ups and portfolios'], ['staff', 'Staff and roles']);
     /* The two wrapper divs are closed by the browser at the end of the page fragment. */
     return '<div class="shell"><aside class="side" aria-label="Dashboard menu">' + b.map(function (x) { return '<button type="button" class="' + (x[0] === active ? 'on' : '') + '" data-v="' + x[0] + '"' + (x[0] === active ? ' aria-current="page"' : '') + '>' + x[1] + '</button>'; }).join('') + '</aside><div class="main">';
   }
@@ -108,6 +108,7 @@
     if (v === 'home') return viewHome(); if (v === 'list') return viewList(); if (v === 'new') return viewForm(null); if (v === 'edit') return viewForm(arg);
     if (v === 'people') return viewPeople('interest'); if (v === 'events' || v === 'news') return viewContent(v);
     if (v === 'staff') return viewStaff();
+    if (v === 'subs') return viewSubs();
   }
   function route() { setPath('/admin'); viewHome(); }
   function setPath(p) { try { if (/^\/admin(\/|$)/.test(location.pathname) && location.pathname.replace(/\/$/, '') !== p) history.replaceState(null, '', p); } catch (e) { } }
@@ -453,11 +454,12 @@
     app.innerHTML = nav('home') + '<h2>Overview</h2><p>Loading...</p>'; bindNav();
     try {
       await loadRows();
-      var ev = [], an = [], pf = [], gi = [], al = [];
+      var ev = [], an = [], pf = [], gi = [], al = [], ss = [];
       if (isAdmin()) {
         var sel = function (tb, q) { return api(function (t) { return DB.select(tb, q, t); }).then(function (r) { return r || []; }); };
         var all = await Promise.all([sel('events', 'select=id,status,event_date&limit=1000'), sel('announcements', 'select=id,status&limit=1000'), sel('portfolio_submissions', 'select=id,status,created_at&limit=1000'), sel('graduate_interest', 'select=id,created_at&limit=1000'), sel('alert_subscriptions', 'select=id,created_at&limit=1000')]);
         ev = all[0]; an = all[1]; pf = all[2]; gi = all[3]; al = all[4];
+        try { ss = await sel('student_submissions', 'select=id,status,created_at&limit=1000'); } catch (e2) { ss = []; /* table not created yet: show zeros */ }
       }
     } catch (e) { if (!e.handled) { app.innerHTML = nav('home') + '<div class="card"><b>Could not load the overview.</b><p>' + esc(fmtErr(e)) + '</p></div>'; bindNav(); } return; }
     var c = counts(), t0 = today(), exp = S.rows.filter(function (r) { return r.status === 'published' && r.deadline && r.deadline < t0; }).length;
@@ -466,8 +468,10 @@
     if (isAdmin()) {
       var evUp = ev.filter(function (e) { return e.status === 'published' && e.event_date >= t0; }).length;
       var pend = c.pending, pfp = pf.filter(function (p) { return p.status === 'pending'; }).length;
-      if (pend || pfp) h += '<div class="card attn"><b>Needs your attention</b><br>' + (pend ? pend + ' opportunit' + (pend === 1 ? 'y is' : 'ies are') + ' awaiting approval. ' : '') + (pfp ? pfp + ' portfolio' + (pfp === 1 ? '' : 's') + ' to review.' : '') + '</div>';
-      h += '<h3>Opportunities</h3><div class="stats">' + stat(c.published, 'Published', 'list') + stat(c.pending, 'Awaiting approval', 'list', c.pending ? 'hot' : '') + stat(c.draft, 'Drafts', 'list') + stat(c.archived, 'Archived', 'list') + stat(exp, 'Published but past deadline', 'list') + '</div>' +
+      var ssp = ss.filter(function (x) { return x.status === 'pending'; }).length;
+      if (pend || pfp || ssp) h += '<div class="card attn"><b>Needs your attention</b><br>' + (ssp ? ssp + ' student submission' + (ssp === 1 ? '' : 's') + ' awaiting review. ' : '') + (pend ? pend + ' opportunit' + (pend === 1 ? 'y is' : 'ies are') + ' awaiting approval. ' : '') + (pfp ? pfp + ' portfolio' + (pfp === 1 ? '' : 's') + ' to review.' : '') + '</div>';
+      h += '<h3>Student Hub submissions</h3><div class="stats">' + stat(ssp, 'Awaiting review', 'subs', ssp ? 'hot' : '') + stat(ss.filter(function (x) { return x.status === 'approved'; }).length, 'Approved', 'subs') + stat(ss.filter(function (x) { return x.status === 'rejected'; }).length, 'Rejected', 'subs') + '</div>' +
+        '<h3>Opportunities</h3><div class="stats">' + stat(c.published, 'Published', 'list') + stat(c.pending, 'Awaiting approval', 'list', c.pending ? 'hot' : '') + stat(c.draft, 'Drafts', 'list') + stat(c.archived, 'Archived', 'list') + stat(exp, 'Published but past deadline', 'list') + '</div>' +
         '<h3>Events</h3><div class="stats">' + stat(evUp, 'Upcoming (published)', 'events') + stat(ev.filter(function (e) { return e.status === 'published' && e.event_date < t0; }).length, 'Past (published)', 'events') + stat(ev.filter(function (e) { return e.status === 'draft'; }).length, 'Drafts', 'events') + '</div>' +
         '<h3>Announcements</h3><div class="stats">' + stat(an.filter(function (e) { return e.status === 'published'; }).length, 'Published', 'news') + stat(an.filter(function (e) { return e.status === 'draft'; }).length, 'Drafts', 'news') + '</div>' +
         '<h3>Graduate hub</h3><div class="stats">' + stat(gi.length, 'Network sign-ups', 'people') + stat(al.length, 'Alert interest', 'people') + stat(pfp, 'Portfolios to review', 'people', pfp ? 'hot' : '') + '</div>';
@@ -669,6 +673,127 @@
       });
     }
     btn('Cancel', 'o', function () { viewContent(key); });
+  }
+
+  /* ---------------- Student Hub submissions (administrators) ---------------- */
+  var SS = { rows: [], q: '', status: 'all', cat: 'all', uni: 'all', att: 'all', sort: 'new', page: 0 };
+  var SUB_LABEL = { pending: 'Awaiting review', approved: 'Approved', rejected: 'Rejected' };
+  var SUB_COLS = ['created_at', 'status', 'title', 'organisation', 'category', 'location', 'deadline', 'apply_url', 'submitter_name', 'submitter_email', 'university', 'attachment_name', 'review_note', 'reviewed_at'];
+  function bytes(n) { return n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB'; }
+  function subsFiltered() {
+    var rows = SS.rows.filter(function (r) {
+      if (SS.status !== 'all' && r.status !== SS.status) return false;
+      if (SS.cat !== 'all' && r.category !== SS.cat) return false;
+      if (SS.uni !== 'all' && r.university !== SS.uni) return false;
+      if (SS.att === 'with' && !r.attachment_path) return false;
+      if (SS.att === 'without' && r.attachment_path) return false;
+      var q = SS.q.toLowerCase(); return !q || [r.title, r.organisation, r.submitter_name, r.submitter_email, r.university, r.category].join(' ').toLowerCase().indexOf(q) >= 0;
+    });
+    rows.sort(function (a, b) {
+      if (SS.sort === 'new' && a.status !== b.status) { if (a.status === 'pending') return -1; if (b.status === 'pending') return 1; }
+      var d = String(a.created_at).localeCompare(String(b.created_at)); return SS.sort === 'old' ? d : -d;
+    });
+    return rows;
+  }
+  async function viewSubs() {
+    if (!isAdmin()) { say('Only administrators can review student submissions.', true); return viewHome(); }
+    app.innerHTML = nav('subs') + '<h2>Student submissions</h2><p>Loading...</p>'; bindNav();
+    try { SS.rows = await api(function (t) { return DB.select('student_submissions', 'select=*&order=created_at.desc&limit=1000', t); }) || []; }
+    catch (e) { if (!e.handled) { var missing = e.status === 404; app.innerHTML = nav('subs') + '<div class="card"><b>' + (missing ? 'Student submissions are not switched on yet.' : 'Could not load student submissions.') + '</b><p>' + esc(missing ? 'Run supabase/migrations/005_student_submissions.sql in the Supabase SQL Editor, then reload this page.' : fmtErr(e)) + '</p></div>'; bindNav(); } return; }
+    drawSubs();
+  }
+  function drawSubs() {
+    var c = { all: SS.rows.length, pending: 0, approved: 0, rejected: 0 }; SS.rows.forEach(function (r) { c[r.status] = (c[r.status] || 0) + 1; });
+    var unis = Object.keys(SS.rows.reduce(function (m, r) { m[r.university] = 1; return m; }, {})).sort();
+    var rows = subsFiltered(), per = 15, total = rows.length, pages = Math.max(1, Math.ceil(total / per)); if (SS.page >= pages) SS.page = pages - 1; var shown = rows.slice(SS.page * per, SS.page * per + per);
+    var tabs = [['all', 'All'], ['pending', 'Awaiting review'], ['approved', 'Approved'], ['rejected', 'Rejected']].map(function (t) { return '<button type="button" data-s="' + t[0] + '" aria-pressed="' + (SS.status === t[0]) + '">' + t[1] + ' (' + c[t[0]] + ')</button>'; }).join('');
+    var h = nav('subs') + '<h2>Student submissions</h2><p class="note">Opportunities sent in through the Student Hub form. Personal details: handle with care. Approving a submission does not publish it; use "Create opportunity draft" and publish through Opportunities.</p>' +
+      (c.pending ? '<div class="card attn"><b>' + c.pending + ' awaiting review.</b></div>' : '') +
+      '<div class="tabs" role="group" aria-label="Review status">' + tabs + '</div>' +
+      '<div class="tools"><label class="grow">Search<input id="sq" type="search" value="' + esc(SS.q) + '" placeholder="Title, organisation, name, email, university"></label>' +
+      '<label>Category<select id="scat"><option value="all">All categories</option>' + CATS.map(function (x) { return '<option' + (SS.cat === x ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join('') + '</select></label>' +
+      '<label>University<select id="suni"><option value="all">All universities</option>' + unis.map(function (x) { return '<option' + (SS.uni === x ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join('') + '</select></label>' +
+      '<label>Attachment<select id="satt"><option value="all">Any</option><option value="with"' + (SS.att === 'with' ? ' selected' : '') + '>With file</option><option value="without"' + (SS.att === 'without' ? ' selected' : '') + '>No file</option></select></label>' +
+      '<label>Sort<select id="ssort"><option value="new">Pending first, newest</option><option value="old"' + (SS.sort === 'old' ? ' selected' : '') + '>Oldest first</option></select></label></div>';
+    if (!shown.length) h += '<div class="card"><b>' + (SS.rows.length ? 'Nothing matches those filters.' : 'No student submissions yet.') + '</b></div>';
+    else h += '<p><button class="btn o s" id="scsv" type="button">Download CSV (' + total + ')</button></p><div class="tw"><table><thead><tr><th>Title</th><th>Category</th><th>Submitted by</th><th>Submitted</th><th>Status</th><th>File</th><th>Actions</th></tr></thead><tbody>' + shown.map(function (r) {
+      return '<tr><td><b>' + esc(r.title) + '</b><br><span class="note">' + esc(r.organisation) + '</span></td><td>' + esc(r.category) + '</td><td>' + esc(r.submitter_name) + '<br><span class="note">' + esc(r.university) + '</span></td><td>' + esc(String(r.created_at).slice(0, 10)) + '</td><td><span class="st ' + esc(r.status) + '">' + esc(SUB_LABEL[r.status] || r.status) + '</span></td><td>' + (r.attachment_path ? esc(r.attachment_type === 'application/pdf' ? 'PDF' : 'Image') : '<span class="note">None</span>') + '</td><td><div class="acts"><button class="btn s" data-open="' + esc(r.id) + '">Open</button>' +
+        (r.status === 'pending' ? '<button class="btn o s" data-quick="approved" data-id="' + esc(r.id) + '">Approve</button><button class="btn o s" data-quick="rejected" data-id="' + esc(r.id) + '">Reject</button>' : '') + '</div></td></tr>';
+    }).join('') + '</tbody></table></div>' + pager(SS.page, pages, total);
+    app.innerHTML = h; bindNav(); bindPager(function (p) { SS.page = p; drawSubs(); });
+    app.querySelectorAll('.tabs button').forEach(function (b) { b.onclick = function () { SS.status = b.dataset.s; SS.page = 0; drawSubs(); }; });
+    var q = $('#sq'); q.oninput = function () { SS.q = q.value.trim(); SS.page = 0; var p = q.selectionStart; drawSubs(); var n = $('#sq'); n.focus(); n.setSelectionRange(p, p); };
+    $('#scat').onchange = function (e) { SS.cat = e.target.value; SS.page = 0; drawSubs(); };
+    $('#suni').onchange = function (e) { SS.uni = e.target.value; SS.page = 0; drawSubs(); };
+    $('#satt').onchange = function (e) { SS.att = e.target.value; SS.page = 0; drawSubs(); };
+    $('#ssort').onchange = function (e) { SS.sort = e.target.value; SS.page = 0; drawSubs(); };
+    var csv = $('#scsv'); if (csv) csv.onclick = function () { downloadCsv('student-submissions.csv', SUB_COLS, rows); };
+    app.querySelectorAll('[data-open]').forEach(function (b) { b.onclick = function () { viewSub(b.dataset.open); }; });
+    app.querySelectorAll('[data-quick]').forEach(function (b) { b.onclick = function () { reviewSub(b.dataset.id, b.dataset.quick, '', b); }; });
+  }
+  function subById(id) { return SS.rows.filter(function (r) { return r.id === id; })[0]; }
+  async function reviewSub(id, status, note, btn, stay) {
+    if (btn) btn.disabled = true;
+    try {
+      var patch = { status: status }; if (note !== null && note !== undefined && note !== '') patch.review_note = note;
+      var o = await api(function (t) { return DB.update('student_submissions', 'id=eq.' + encodeURIComponent(id), patch, t); });
+      if (!o || !o.length) throw new Error('Nothing was changed. Only administrators can review submissions.');
+      var r = subById(id); if (r) Object.assign(r, o[0]);
+      say(status === 'approved' ? 'Approved. It is not public yet: create an opportunity draft to publish it.' : status === 'rejected' ? 'Rejected.' : 'Moved back to awaiting review.');
+      if (stay) viewSub(id); else drawSubs();
+    } catch (e) { if (!e.handled) say(fmtErr(e), true); if (btn) btn.disabled = false; }
+  }
+  /* Attachments are private: ask Supabase for a short-lived signed link (admins only, enforced by the database). */
+  async function signedUrl(r, download) {
+    var res = await api(function (t) { return DB.request('/storage/v1/object/sign/student-submissions/' + r.attachment_path, { method: 'POST', token: t, body: { expiresIn: 300 } }); });
+    if (!res || !res.signedURL) throw new Error('Could not open the attachment.');
+    return DB.BASE + '/storage/v1' + res.signedURL + (download ? '&download=' + encodeURIComponent(r.attachment_name || 'attachment') : '');
+  }
+  function viewSub(id) {
+    var r = subById(id); if (!r) return drawSubs();
+    function row(k, v) { return '<tr><th scope="row" style="width:34%">' + k + '</th><td>' + (v || '<span class="note">Not given</span>') + '</td></tr>'; }
+    var h = nav('subs') + '<p><button class="btn o s" id="sback" type="button">Back to the list</button></p><h2>' + esc(r.title) + '</h2><p><span class="st ' + esc(r.status) + '">' + esc(SUB_LABEL[r.status] || r.status) + '</span> <span class="note">Submitted ' + esc(String(r.created_at).slice(0, 10)) + (r.reviewed_at ? ' &middot; reviewed ' + esc(String(r.reviewed_at).slice(0, 10)) : '') + '</span></p>' +
+      '<div class="tw"><table><tbody>' + row('Organisation', esc(r.organisation)) + row('Category', esc(r.category)) + row('Description', '<span style="white-space:pre-line">' + esc(r.description) + '</span>') + row('Location', esc(r.location)) + row('Deadline', esc(r.deadline)) +
+      row('Application link', /^https:\/\//.test(r.apply_url || '') ? '<a href="' + esc(r.apply_url) + '" target="_blank" rel="noopener noreferrer">' + esc(r.apply_url) + '</a>' : '') +
+      row('Submitted by', esc(r.submitter_name)) + row('Email', r.submitter_email ? '<a href="mailto:' + esc(r.submitter_email) + '">' + esc(r.submitter_email) + '</a>' : '') + row('University', esc(r.university)) +
+      row('Attachment', r.attachment_path ? esc(r.attachment_name || 'attachment') + ' <span class="note">(' + esc(r.attachment_type) + ', ' + bytes(r.attachment_size) + ')</span><div class="acts" style="margin-top:6px"><button class="btn o s" id="aopen" type="button">Open</button><button class="btn o s" id="adl" type="button">Download</button></div><div id="apv"></div>' : '') +
+      row('Review note', esc(r.review_note)) + '</tbody></table></div>' +
+      '<form class="f" id="rf" style="margin-top:14px"><label>Review note (optional, only administrators see it)<textarea name="note" rows="2" maxlength="1000">' + esc(r.review_note) + '</textarea></label><div class="acts" id="ra"></div></form>';
+    app.innerHTML = h; bindNav();
+    $('#sback').onclick = function () { drawSubs(); };
+    function act(label, cls, fn) { var b = mk('<button type="button" class="btn ' + cls + '">' + label + '</button>'); b.onclick = function () { fn(b); }; $('#ra').appendChild(b); }
+    var note = function () { return $('#rf').elements.note.value.trim(); };
+    if (r.status !== 'approved') act('Approve', '', function (b) { reviewSub(id, 'approved', note(), b, true); });
+    if (r.status !== 'rejected') act('Reject', 'o', function (b) { reviewSub(id, 'rejected', note(), b, true); });
+    if (r.status !== 'pending') act('Move back to awaiting review', 'o', function (b) { reviewSub(id, 'pending', note(), b, true); });
+    act('Create opportunity draft', 'o', function () {
+      viewForm(null, { title: r.title, organisation: r.organisation, category: r.category, description: r.description, location: r.location || '', deadline: r.deadline || '', apply_url: r.apply_url || '', source: 'Student Hub submission by ' + r.submitter_name + ', ' + r.university });
+      say('Draft prefilled from the submission. Check the details' + (r.attachment_path ? ', then download the attachment and re-upload it here if you want it shown' : '') + ', then save.');
+    });
+    act('Delete', 'd', async function (b) {
+      if (!confirm('Delete this submission permanently' + (r.attachment_path ? ' and its attachment' : '') + '? This cannot be undone.')) return;
+      b.disabled = true;
+      try {
+        var o = await api(function (t) { return DB.remove('student_submissions', 'id=eq.' + encodeURIComponent(id), t); });
+        if (!o || !o.length) throw new Error('Nothing was deleted. Only administrators can delete submissions.');
+        var warn = '';
+        if (r.attachment_path) { try { await api(function (t) { return DB.request('/storage/v1/object/student-submissions/' + r.attachment_path, { method: 'DELETE', token: t }); }); } catch (e) { warn = ' The attachment file could not be removed from storage.'; } }
+        SS.rows = SS.rows.filter(function (x) { return x.id !== id; }); say('Deleted.' + warn, !!warn); drawSubs();
+      } catch (e) { if (!e.handled) say(fmtErr(e), true); b.disabled = false; }
+    });
+    if (r.attachment_path) {
+      var open = function (download) { return async function (ev) {
+        var b = ev.target, w = download ? null : window.open('', '_blank'); b.disabled = true;
+        try {
+          var url = await signedUrl(r, download);
+          if (download) { var a = document.createElement('a'); a.href = url; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); }
+          else if (w) { w.opener = null; w.location = url; }
+          else $('#apv').innerHTML = '<p><a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer">Open the attachment</a> <span class="note">(link works for 5 minutes)</span></p>';
+          if (/^image\//.test(r.attachment_type) && !download) $('#apv').innerHTML = '<p><img src="' + esc(url) + '" alt="Attachment preview" style="max-width:100%;max-height:360px;border:1px solid var(--line)"></p>';
+        } catch (e) { if (w) w.close(); if (!e.handled) say(e.status === 404 ? 'The attachment file was not found in storage.' : fmtErr(e), true); }
+        b.disabled = false; }; };
+      $('#aopen').onclick = open(false); $('#adl').onclick = open(true);
+    }
   }
 
   /* ---------------- boot ---------------- */
