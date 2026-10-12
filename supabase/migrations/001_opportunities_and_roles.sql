@@ -113,7 +113,7 @@ revoke all on public.opportunities from anon, authenticated;
 
 -- Public visitors may read only these columns (note: created_by is NOT included).
 grant select (id, title, organisation, category, description, location, apply_url,
-              deadline, file_url, eligibility, source, audience, status,
+              deadline, file_url, eligibility, audience, status,
               published_at, created_at, updated_at)
   on public.opportunities to anon;
 -- Logged-in users get table privileges; the policies below decide which ROWS.

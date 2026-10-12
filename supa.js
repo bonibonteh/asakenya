@@ -53,7 +53,7 @@
   function rpc(fn, args, token) { return request('/rest/v1/rpc/' + fn, { method: 'POST', token: token, body: args || {} }); }
 
   /* Public columns of an opportunity (matches the columns anonymous visitors are allowed to read). */
-  var OPP_COLS = 'id,title,organisation,category,description,location,apply_url,deadline,file_url,eligibility,source,audience,status,published_at,created_at,updated_at';
+  var OPP_COLS = 'id,title,organisation,category,description,location,apply_url,deadline,file_url,eligibility,audience,status,published_at,created_at,updated_at';
 
   window.ASA_DB = {
     configured: configured, request: request, select: select, insert: insert, update: update, remove: remove, rpc: rpc,

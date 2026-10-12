@@ -118,8 +118,10 @@ select zz_rls_test.denied('public: select * is refused (creator column is privat
   $q$select * from public.opportunities$q$, 'permission denied');
 select zz_rls_test.denied('public: cannot read created_by',
   $q$select created_by from public.opportunities$q$, 'permission denied');
-select zz_rls_test.ok('public: the 16 public columns can be read',
-  $q$select id,title,organisation,category,description,location,apply_url,deadline,file_url,eligibility,source,audience,status,published_at,created_at,updated_at from public.opportunities$q$);
+select zz_rls_test.ok('public: the 15 public columns can be read',
+  $q$select id,title,organisation,category,description,location,apply_url,deadline,file_url,eligibility,audience,status,published_at,created_at,updated_at from public.opportunities$q$);
+select zz_rls_test.denied('public: source (staff-only note) cannot be read',
+  $q$select source from public.opportunities$q$, 'permission denied');
 select zz_rls_test.denied('public: cannot insert an opportunity',
   $q$insert into public.opportunities (title,organisation,category,description) values ('zz x1','O','Competitions','zz description long enough')$q$, 'permission denied');
 select zz_rls_test.denied('public: cannot update an opportunity',

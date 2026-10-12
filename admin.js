@@ -183,7 +183,7 @@
       var pub = mk('<button class="btn" type="button">Confirm: publish to the website</button>');
       pub.onclick = async function () {
         pub.disabled = true;
-        try { await o.beforePublish(); await setStatus(o.publishId, 'published', 'Published. It is now live on the website.'); }
+        try { await setStatus(o.publishId, 'published', 'Published. It is now live on the website.'); }
         catch (e) { if (!e.handled) say(fmtErr(e), true); pub.disabled = false; }
       };
       box.appendChild(pub);
@@ -191,8 +191,8 @@
   }
 
   /* ---------------- add / edit form ---------------- */
-  function viewForm(r) {
-    var isNew = !r, d = r || { category: CATS[0], audience: 'both', status: 'draft' };
+  function viewForm(r, pre) {
+    var isNew = !r, d = r || Object.assign({ category: CATS[0], audience: 'both', status: 'draft' }, pre || {});
     var adminStatus = isAdmin() ? '<label>Status<select name="status">' + STATUS.map(function (s) { return '<option value="' + s + '"' + (d.status === s ? ' selected' : '') + '>' + STATUS_LABEL[s] + '</option>'; }).join('') + '</select><small>Choosing "Published" shows a preview first.</small></label>' : '';
     app.innerHTML = nav(isNew ? 'new' : '') + '<h2>' + (isNew ? 'Add an opportunity' : 'Edit opportunity') + '</h2>' +
       '<form class="f" id="of" novalidate><label>Title<input name="title" maxlength="200" value="' + esc(d.title) + '" required></label>' +
@@ -227,22 +227,23 @@
       var p = { title: v.title, organisation: v.organisation, category: v.category, audience: v.audience, description: v.description, location: v.location || null, deadline: v.deadline || null, apply_url: v.apply_url || null, eligibility: v.eligibility || null, source: v.source || null, file_url: v.file_url || null };
       return p;
     }
-    async function upload() {
-      var file = f.elements.file.files[0]; if (!file) return null;
+    async function upload(file) {
+      if (!file) return null;
       var path = S.session.user.id + '/' + (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2)) + '.' + TYPES[file.type];
       await api(function (t) { return DB.request('/storage/v1/object/' + (C.OPPORTUNITY_BUCKET || 'opportunity-files') + '/' + path, { method: 'POST', token: t, body: file, raw: true, timeout: 60000, headers: { 'Content-Type': file.type, 'x-upsert': 'false' } }); });
       return DB.publicFileUrl(path);
     }
-    async function save(status, b, afterOk) {
+    async function persist(v, status, file) {
+      var up = await upload(file); var p = payload(v); if (up) p.file_url = up;
+      p.status = status;
+      if (isNew) { p.created_by = S.session.user.id; await api(function (t) { return DB.insert('opportunities', p, t); }); }
+      else { var o = await api(function (t) { return DB.update('opportunities', 'id=eq.' + encodeURIComponent(r.id), p, t); }); if (!o || !o.length) throw new Error('Nothing was saved. You may not have permission to edit this one.'); }
+    }
+    async function save(status, b) {
       $('#fe').textContent = ''; var v = read(), bad = check(v); if (bad) { $('#fe').textContent = bad; return false; }
       b.disabled = true; var label = b.textContent; b.textContent = 'Saving...';
-      try {
-        var up = await upload(); var p = payload(v); if (up) p.file_url = up;
-        p.status = status;
-        if (isNew) { p.created_by = S.session.user.id; await api(function (t) { return DB.insert('opportunities', p, t); }); }
-        else { var o = await api(function (t) { return DB.update('opportunities', 'id=eq.' + encodeURIComponent(r.id), p, t); }); if (!o || !o.length) throw new Error('Nothing was saved. You may not have permission to edit this one.'); }
-        return true;
-      } catch (e) { if (!e.handled) $('#fe').textContent = fmtErr(e); return false; }
+      try { await persist(v, status, f.elements.file.files[0]); return true; }
+      catch (e) { if (!e.handled) $('#fe').textContent = fmtErr(e); return false; }
       finally { b.disabled = false; b.textContent = label; }
     }
     async function done(msg) { say(msg); S.filter = { q: '', status: 'all', cat: 'all' }; await viewList(); }
@@ -251,7 +252,7 @@
       var fake = Object.assign({}, d, payload(v), { status: d.status }); var file = f.elements.file.files[0];
       if (file) fake.file_url = ''; var snap = f.cloneNode(true);
       /* keep what was typed: return to a re-rendered form filled from the same values */
-      viewPreview(fake, { backLabel: 'Back to editing', onBack: function () { viewForm(Object.assign({}, d, payload(v), { id: d.id, status: d.status, created_by: d.created_by })); if (isNew) { /* stay in "new" mode */ } } });
+      viewPreview(fake, { backLabel: 'Back to editing', onBack: function () { if (isNew) viewForm(null, payload(v)); else viewForm(Object.assign({}, d, payload(v), { id: d.id, status: d.status, created_by: d.created_by })); } });
     });
     if (!isAdmin()) {
       btn('Save draft', 'o', async function (b) { if (await save('draft', b)) done('Draft saved.'); });
@@ -261,20 +262,16 @@
         var st = f.elements.status.value;
         if (st === 'published' && d.status !== 'published') {
           var v = read(), bad = check(v); if (bad) { $('#fe').textContent = bad; return; }
-          var fake = Object.assign({}, d, payload(v), { status: 'draft' }), pid = 'x';
-          viewPreview(fake, { backLabel: 'Back to editing', onBack: function () { viewForm(Object.assign({}, d, payload(v), { id: d.id, created_by: d.created_by })); }, publishId: pid, beforePublish: async function () { }, });
-          /* replace the generic publish with save-as-published */
-          var old = $('.acts button:last-child', app); var nb = old.cloneNode(true); old.replaceWith(nb);
-          nb.onclick = async function () { nb.disabled = true; var ok = await saveAs(); if (!ok) nb.disabled = false; };
-          async function saveAs() {
-            try {
-              var up = file0(); var p = payload(v); if (up) p.file_url = up; p.status = 'published';
-              if (isNew) { p.created_by = S.session.user.id; await api(function (t) { return DB.insert('opportunities', p, t); }); }
-              else { var o = await api(function (t) { return DB.update('opportunities', 'id=eq.' + encodeURIComponent(r.id), p, t); }); if (!o || !o.length) throw new Error('Nothing was saved.'); }
-              await done('Published. It is now live on the website.'); return true;
-            } catch (e) { if (!e.handled) say(fmtErr(e), true); return false; }
-          }
-          function file0() { return null; }
+          var fileObj = f.elements.file.files[0];
+          var fake = Object.assign({}, d, payload(v), { status: 'draft', file_url: fileObj ? '' : v.file_url });
+          viewPreview(fake, { backLabel: 'Back to editing', onBack: function () { if (isNew) viewForm(null, Object.assign(payload(v), { status: 'published' })); else viewForm(Object.assign({}, d, payload(v), { id: d.id, created_by: d.created_by })); } });
+          var pub = mk('<button class="btn" type="button">Confirm: publish to the website</button>'); $('.acts', app).appendChild(pub);
+          if (fileObj) $('.acts', app).insertAdjacentHTML('beforebegin', '<p class="note">The file you chose will be uploaded when you publish.</p>');
+          pub.onclick = async function () {
+            pub.disabled = true;
+            try { await persist(v, 'published', fileObj); await done('Published. It is now live on the website.'); }
+            catch (e) { if (!e.handled) say(fmtErr(e), true); pub.disabled = false; }
+          };
           return;
         }
         if (await save(st, b)) done(st === 'published' ? 'Changes saved.' : 'Saved.');
