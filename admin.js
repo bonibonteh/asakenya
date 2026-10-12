@@ -55,7 +55,7 @@
   /* ---------------- login ---------------- */
   function renderLogin(note) {
     setPath('/admin/login');
-    app.innerHTML = '<div class="login card"><h2>Log in</h2><p class="note">For ASA Kenya officials. Accounts are created by an administrator; there is no public sign-up.</p>' +
+    app.innerHTML = '<div class="login card"><h2>Log in</h2>' +
       (note ? '<p class="m er" style="padding:10px">' + esc(note.text) + '</p>' : '') +
       '<form id="lf"><label>Email<input type="email" name="email" autocomplete="username" required></label><label>Password<input type="password" name="password" autocomplete="current-password" required></label><button class="btn" type="submit">Log in</button></form>' +
       '<p><button class="btn o s" id="fp" type="button">Forgot your password?</button></p></div>';
