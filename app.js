@@ -100,7 +100,7 @@ function progHtml(e){return `<div class="pgm"><h4>Launch programme</h4>${e.tagli
 function renderEv(a){const b=$('#el');b.innerHTML='';const now=new Date(new Date().toDateString());
  const l=EVENTS.filter(e=>e.status=='approved'&&(a=='All'||e.association==a)).sort((x,y)=>new Date(x.date)-new Date(y.date));
  const up=l.filter(e=>new Date(e.date)>=now),pa=l.filter(e=>new Date(e.date)<now).reverse();
- const row=(e,past)=>el('div',`<div><h3>${e.title}</h3><p style="margin:.3em 0"><b>${e.show}</b>, ${e.location}</p><p>${e.description}</p>${e.anim?launchHtml(e):''}${e.programme?progHtml(e):''}${e.link?`<a class="btn" href="${e.link}" target="_blank" rel="noopener noreferrer">${e.lt}</a>`:''}${e.doc?`<a class="btn o" href="${e.doc}" target="_blank" rel="noopener noreferrer">Open attachment</a>`:''}${e.pics?'<div class="pics">'+e.pics.map(p=>`<img src="${p[0]}" alt="${p[1]}" loading="lazy">`).join('')+'</div>':''}</div><span class="badge" style="background:${past?'var(--mut)':'var(--earth)'};align-self:start">${e.association}</span>`,'item');
+ const row=(e,past)=>el('div',`<div><h3>${e.title}</h3>${e.category?`<p class="note" style="margin:0">${e.category}</p>`:''}<p style="margin:.3em 0"><b>${e.show}</b>, ${e.location}</p><p>${e.description}</p>${e.anim?launchHtml(e):''}${e.programme?progHtml(e):''}${e.link?`<a class="btn" href="${e.link}" target="_blank" rel="noopener noreferrer">${e.lt}</a>`:''}${e.doc?`<a class="btn o" href="${e.doc}" target="_blank" rel="noopener noreferrer">Open attachment</a>`:''}${e.pics?'<div class="pics">'+e.pics.map(p=>`<img src="${p[0]}" alt="${p[1]}" loading="lazy">`).join('')+'</div>':''}</div><span class="badge" style="background:${past?'var(--mut)':'var(--earth)'};align-self:start">${e.association}</span>`,'item');
  b.append(el('h3',`Upcoming`));if(!up.length)b.append(el('div',`<b>No upcoming events listed${a!='All'?' for '+a:''} yet</b><p>Check back soon, or submit an event.</p>`,'empty'));up.forEach(e=>b.append(row(e,0)));
  if(pa.length){{const ph=el('h3','Past events');ph.style.marginTop='40px';b.append(ph)}pa.forEach(e=>b.append(row(e,1)))}armLau(b)}
 chips('#ec',['ASA Kenya',...ASSOCIATIONS.filter(a=>!a.nm).map(a=>a.short)],renderEv);renderEv('All');
@@ -264,10 +264,10 @@ function mapEvent(r){const u=x=>x&&/^https:\/\//.test(x)?x:'';const t=r.start_ti
  const img=u(r.image_url),pdf=/\.pdf(\?|$)/i.test(img);
  const place=[r.venue,r.online_url?'Online':''].filter(Boolean).join(' and ');
  const link=u(r.registration_url)||u(r.online_url);
- return{title:esc(r.title),association:r.association,date:String(r.event_date).slice(0,10),show:esc(evDate(r.event_date)+(t?', '+t:'')),location:esc(place),description:esc(r.description).replace(/\n/g,'<br>'),
+ return{title:esc(r.title),association:r.association,category:r.category||'',date:String(r.event_date).slice(0,10),show:esc(evDate(r.event_date)+(t?', '+t:'')),location:esc(place),description:esc(r.description).replace(/\n/g,'<br>'),
   status:'approved',link:link,lt:u(r.registration_url)?'Register':'Join online',pics:img&&!pdf?[[img,'Poster for '+esc(r.title)]]:null,doc:pdf?img:'',live:1}}
 async function loadEvents(){if(!window.ASA_DB||!ASA_DB.configured())return;
- try{const rows=await ASA_DB.select('events','select=id,title,association,description,event_date,start_time,end_time,venue,online_url,registration_url,image_url,status&status=eq.published&order=event_date.asc&limit=200');
+ try{const rows=await ASA_DB.select('events','select=id,title,association,category,description,event_date,start_time,end_time,venue,online_url,registration_url,image_url,status&status=eq.published&order=event_date.asc&limit=200');
   const X={};EVENTS.slice(0,EV_BUILTIN).forEach(e=>X[e.title]=e);
   /* The database now owns every event. The built-in copies only supply extras the table has no column for (programme, animation, extra photos) and are the fallback if the database is unreachable. */
   EVENTS.length=0;(rows||[]).forEach(r=>{const m=mapEvent(r),x=X[r.title];if(x){if(x.programme)m.programme=x.programme;if(x.tagline)m.tagline=x.tagline;if(x.anim)m.anim=x.anim;if(x.pics)m.pics=x.pics;if(x.link&&r.registration_url===x.link){m.lt=x.lt}}EVENTS.push(m)});renderEv('All');document.querySelectorAll('#el .item').forEach(t=>t.classList.add('in'))}catch(e){/* keep built-in events */}}
