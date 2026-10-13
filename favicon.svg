@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs><clipPath id="circle"><circle cx="32" cy="32" r="30"/></clipPath></defs>
+  <circle cx="32" cy="32" r="32" fill="#f5f0e6"/>
+  <image href="/images/photo-2.jpg" x="2" y="2" width="60" height="60" preserveAspectRatio="xMidYMid slice" clip-path="url(#circle)"/>
+  <circle cx="32" cy="32" r="30" fill="none" stroke="#103824" stroke-width="2"/>
+</svg>
