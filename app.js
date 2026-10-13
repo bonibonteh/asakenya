@@ -194,10 +194,6 @@ function init(){let gl;try{gl=new THREE.WebGLRenderer({canvas:$('#cv'),antialias
  const grid=new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position',F(gp)),M(paper,.35));sc.add(grid);const gn=gp.length/3;
  // section line cutting the plan
  const sec=new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints([[-11,0,.5],[11,0,.5],[-11,0,.5],[-11,0,-1.6],[11,0,.5],[11,0,-1.6]].map(p=>new THREE.Vector3(...p))),new THREE.LineDashedMaterial({color:acc,dashSize:.7,gapSize:.35,transparent:true}));sec.computeLineDistances();sc.add(sec);
- // 2 STRUCTURE: columns and slabs rise
- const cp=[];for(let x=-6;x<=6;x+=3)for(let z=-6;z<=6;z+=3)cp.push(x,0,z,x,4,z);
- for(let y=2;y<=4;y+=2)for(let x=-6;x<=6;x+=3)cp.push(x,y,-6,x,y,6,-6,y,x,6,y,x);
- const frame=new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position',F(cp)),M(acc,.9));sc.add(frame);
  // 3 BUILDINGS / CITY: masses extrude upward (fixed seed)
  const bl=[],n=mob?10:18;let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
  for(let i=0;i<n;i++){const w=1+rnd()*1.6,d=1+rnd()*1.6,h=1+rnd()*(i%5===0?7:3.5);
@@ -215,7 +211,6 @@ function init(){let gl;try{gl=new THREE.WebGLRenderer({canvas:$('#cv'),antialias
  function draw(p){const q=ez(cl(p,.62,1));
   grid.geometry.setDrawRange(0,Math.floor(gn*cl(p,0,.18)/2)*2);
   sec.material.opacity=ez(cl(p,.08,.18))*(1-ez(cl(p,.3,.42)));
-  const sp2=cl(p,.18,.4);frame.visible=sp2>0;frame.scale.y=Math.max(.001,sp2);
   bl.forEach((b,i)=>{const t=cl(p,.4+i*.012,.65);b.scale.y=Math.max(.001,t);b.position.y=b.userData.h*b.scale.y/2});
   const np=cl(p,.78,.98);net.material.opacity=np;nm.forEach(m=>m.material.opacity=Math.min(1,np*1.5));
   const a=p*1.6+mx*.5,rad=17-q*3,hh=6+q*8+my*2;cam.position.set(Math.sin(a)*rad,hh,Math.cos(a)*rad);cam.lookAt(0,q*5,0);gl.render(sc,cam);
