@@ -547,6 +547,62 @@ select zz_rls_test.log('005 trigger: review records who and when',
 select zz_rls_test.log('005 bucket is private',
   (select public = false from storage.buckets where id = 'student-submissions'), '');
 
+
+-- ---------------------------------------------------------------------------
+-- MIGRATION 006: publish a student submission
+-- ---------------------------------------------------------------------------
+reset role;
+insert into public.student_submissions (title, organisation, category, description, submitter_name, submitter_email, university, consent, deadline) values
+  ('zz pub1','Org P','Jobs','Publishable student submission text','Pat One','p1@x.co','TUK',true,current_date+20),
+  ('zz pub rej','Org P','Jobs','Rejected student submission text','Pat Two','p2@x.co','TUK',true,null),
+  ('zz pub old','Org P','Jobs','Past deadline student submission','Pat Three','p3@x.co','TUK',true,current_date-3);
+update public.student_submissions set status='rejected' where title='zz pub rej';
+
+set local role anon;
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+select zz_rls_test.denied('006 public cannot call publish',
+  $q$select public.publish_student_submission((select id from public.student_submissions limit 1), null)$q$, 'permission denied');
+reset role;
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"role":"authenticated","sub":"00000000-0000-4000-8000-0000000000a2"}', true);
+select zz_rls_test.denied('006 editor cannot publish',
+  $q$select public.publish_student_submission((select id from public.student_submissions where title='zz pub1'), null)$q$, 'Only administrators');
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"role":"authenticated","sub":"00000000-0000-4000-8000-0000000000a4"}', true);
+select zz_rls_test.denied('006 outsider cannot publish',
+  $q$select public.publish_student_submission((select id from public.student_submissions where title='zz pub1'), null)$q$, 'Only administrators');
+reset role;
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"role":"authenticated","sub":"00000000-0000-4000-8000-0000000000a1"}', true);
+select zz_rls_test.denied('006 admin cannot publish a rejected submission',
+  $q$select public.publish_student_submission((select id from public.student_submissions where title='zz pub rej'), null)$q$, 'Rejected submissions');
+select zz_rls_test.denied('006 admin cannot publish past-deadline submission',
+  $q$select public.publish_student_submission((select id from public.student_submissions where title='zz pub old'), null)$q$, 'deadline');
+select zz_rls_test.denied('006 admin cannot forge the publication link directly',
+  $q$update public.student_submissions set published_opportunity_id = gen_random_uuid() where title='zz pub1'$q$, 'permission denied');
+select zz_rls_test.ok('006 admin publishes', $q$select public.publish_student_submission((select id from public.student_submissions where title='zz pub1'), 'looks good')$q$);
+select zz_rls_test.denied('006 duplicate publish refused',
+  $q$select public.publish_student_submission((select id from public.student_submissions where title='zz pub1'), null)$q$, 'already been published');
+select zz_rls_test.denied('006 published submission cannot be rejected',
+  $q$update public.student_submissions set status='rejected' where title='zz pub1'$q$, 'already published');
+select zz_rls_test.val('006 submission kept, approved, linked, note saved',
+  $q$select (status='approved' and published_opportunity_id is not null and published_at is not null and review_note='looks good')::text from public.student_submissions where title='zz pub1'$q$, 'true');
+reset role;
+select zz_rls_test.val('006 exactly one opportunity created',
+  $q$select count(*)::text from public.opportunities where title='zz pub1'$q$, '1');
+select zz_rls_test.val('006 opportunity is published, student audience, authored by the admin',
+  $q$select (status='published' and audience='students' and published_at is not null and created_by='00000000-0000-4000-8000-0000000000a1')::text from public.opportunities where title='zz pub1'$q$, 'true');
+set local role anon;
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+select zz_rls_test.val('006 public sees the published opportunity',
+  $q$select count(*)::text from public.opportunities where title='zz pub1'$q$, '1');
+select zz_rls_test.val('006 public cannot see rejected one as opportunity',
+  $q$select count(*)::text from public.opportunities where title in ('zz pub rej','zz pub old')$q$, '0');
+reset role;
+
 -- ---------------------------------------------------------------------------
 -- REPORT. The error below is intentional: raising it makes the database undo the whole script.
 -- ---------------------------------------------------------------------------

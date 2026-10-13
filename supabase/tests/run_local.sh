@@ -12,11 +12,13 @@ $P -f $D/migrations/002_graduate_hub.sql
 $P -f $D/migrations/003_events_and_announcements.sql
 $P -f $D/migrations/004_staff_management.sql
 $P -f $D/migrations/005_student_submissions.sql
+$P -f $D/migrations/006_publish_student_submissions.sql
 echo "== second run (idempotency) =="
 $P -f $D/migrations/001_opportunities_and_roles.sql
 $P -f $D/migrations/002_graduate_hub.sql
 $P -f $D/migrations/003_events_and_announcements.sql
 $P -f $D/migrations/004_staff_management.sql
 $P -f $D/migrations/005_student_submissions.sql
+$P -f $D/migrations/006_publish_student_submissions.sql
 shift 2
 for f in "$@"; do $P -f "$f"; done
