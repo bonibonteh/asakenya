@@ -781,9 +781,11 @@
     var pubd = !!r.published_opportunity_id;
     if (pubd) $('#ra').appendChild(mk('<p class="note" style="flex-basis:100%;margin:0">Published to Student Opportunities. To take it down, archive the opportunity under Opportunities. The submission stays here as a record.</p>'));
     if (!pubd && r.status !== 'rejected') act('Preview and publish', '', function () {
+      // Capture the review note before the preview replaces the submission form.
+      var publishNote = note();
       viewPreview({ title: r.title, organisation: r.organisation, category: r.category, description: r.description, location: r.location, deadline: r.deadline, apply_url: r.apply_url, audience: 'students', status: 'draft' }, {
         backLabel: 'Back to the submission', onBack: function () { viewSub(id); },
-        publish: function () { return publishSub(id, note()); } });
+        publish: function () { return publishSub(id, publishNote); } });
     });
     if (!pubd && r.status !== 'approved') act('Approve', 'o', function (b) { reviewSub(id, 'approved', note(), b, true); });
     if (!pubd && r.status !== 'rejected') act('Reject', 'o', function (b) { reviewSub(id, 'rejected', note(), b, true); });
