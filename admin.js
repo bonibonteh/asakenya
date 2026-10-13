@@ -541,6 +541,7 @@
   function drawContent(key) {
     var cfg = CT[key], st = CS[key], t0 = today(), c = { all: st.rows.length };
     Object.keys(CSTAT).forEach(function (s) { c[s] = st.rows.filter(function (r) { return r.status === s; }).length; });
+    if (key === 'events') c.pending = st.rows.filter(function (r) { return r.status === 'pending'; }).length;
     var rows = st.rows.filter(function (r) {
       if (st.status !== 'all' && r.status !== st.status) return false;
       if (key === 'events' && st.when === 'upcoming' && r.event_date < t0) return false;
