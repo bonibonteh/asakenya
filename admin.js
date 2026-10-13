@@ -98,7 +98,7 @@
   /* ---------------- routing between views ---------------- */
   function nav(active) {
     var b = [['home', 'Overview'], ['list', 'Opportunities'], ['new', 'Add opportunity']];
-    if (isAdmin()) b.push(['subs', 'Student submissions'], ['events', 'Events'], ['news', 'Announcements'], ['people', 'Sign-ups and portfolios'], ['staff', 'Staff and roles']);
+    if (isAdmin()) b.push(['subs', 'Student submissions']); b.push(['events', 'Events']); if (isAdmin()) b.push(['news', 'Announcements'], ['people', 'Sign-ups and portfolios'], ['staff', 'Staff and roles']);
     /* The two wrapper divs are closed by the browser at the end of the page fragment. */
     return '<div class="shell"><aside class="side" aria-label="Dashboard menu">' + b.map(function (x) { return '<button type="button" class="' + (x[0] === active ? 'on' : '') + '" data-v="' + x[0] + '"' + (x[0] === active ? ' aria-current="page"' : '') + '>' + x[1] + '</button>'; }).join('') + '</aside><div class="main">';
   }
@@ -501,12 +501,14 @@
 
   /* ---------------- events and announcements (administrators) ---------------- */
   var ASSOCS = ['ASA Kenya', 'ASA TUK', 'ASA KU', 'ASA JKUAT', 'ASA UoN', 'ASA TUM'];
+  var EVENT_CATEGORIES = ['Conference','Workshop','Competition','Site visit','Exhibition','Talk','Networking','Other'];
   var CT = {
     events: {
       table: 'events', one: 'event', many: 'Events', order: 'event_date.desc',
       fields: [
         { k: 'title', label: 'Event title', type: 'text', max: 200 },
         { k: 'association', label: 'Organised by', type: 'select', opts: ASSOCS },
+        { k: 'category', label: 'Event category', type: 'select', opts: EVENT_CATEGORIES },
         { k: 'event_date', label: 'Date', type: 'date' },
         { k: 'start_time', label: 'Start time (optional)', type: 'time', half: 1 },
         { k: 'end_time', label: 'End time (optional)', type: 'time', half: 1 },
@@ -529,7 +531,7 @@
   var CSTAT = { draft: 'Draft', published: 'Published', archived: 'Archived' };
 
   async function viewContent(key) {
-    if (!isAdmin()) { say('Only administrators can manage this.', true); return viewHome(); }
+    if (!isAdmin() && key !== 'events') { say('Only administrators can manage this.', true); return viewHome(); }
     var cfg = CT[key], st = CS[key];
     app.innerHTML = nav(key) + '<h2>' + cfg.many + '</h2><p>Loading...</p>'; bindNav();
     try { st.rows = await api(function (t) { return DB.select(cfg.table, 'select=*&order=' + cfg.order + '&limit=500', t); }) || []; }
@@ -546,18 +548,17 @@
       var q = st.q.toLowerCase(); return !q || (r.title + ' ' + (r.venue || '') + ' ' + (r.association || r.kind || '')).toLowerCase().indexOf(q) >= 0;
     });
     var total = rows.length, per = 15, pages = Math.max(1, Math.ceil(total / per)); if (st.page >= pages) st.page = pages - 1; rows = rows.slice(st.page * per, st.page * per + per);
-    var tabs = [['all', 'All']].concat(Object.keys(CSTAT).map(function (s) { return [s, CSTAT[s]]; })).map(function (t) { return '<button type="button" data-s="' + t[0] + '" aria-pressed="' + (st.status === t[0]) + '">' + t[1] + ' (' + c[t[0]] + ')</button>'; }).join('');
+    var tabs = [['all', 'All']].concat(Object.keys(CSTAT).concat(key === 'events' ? ['pending'] : []).map(function (s) { return [s, s === 'pending' ? 'Pending approval' : CSTAT[s]]; })).map(function (t) { return '<button type="button" data-s="' + t[0] + '" aria-pressed="' + (st.status === t[0]) + '">' + t[1] + ' (' + (c[t[0]] || 0) + ')</button>'; }).join('');
     var h = nav(key) + '<h2>' + cfg.many + '</h2><p><button class="btn" type="button" data-new="1">Add ' + cfg.one + '</button></p><div class="tabs" role="group" aria-label="Status">' + tabs + '</div>' +
       '<div class="tools"><label class="grow">Search<input id="q" type="search" value="' + esc(st.q) + '" placeholder="Title or venue"></label>' +
       (key === 'events' ? '<label>When<select id="wf"><option value="all">All dates</option><option value="upcoming"' + (st.when === 'upcoming' ? ' selected' : '') + '>Upcoming</option><option value="past"' + (st.when === 'past' ? ' selected' : '') + '>Past</option></select></label>' : '') +
       '<button type="button" class="btn o s" id="csv">Download CSV (' + total + ')</button></div>';
     if (!rows.length) h += '<div class="card"><b>' + (st.rows.length ? 'Nothing matches those filters.' : 'No ' + cfg.many.toLowerCase() + ' yet.') + '</b></div>';
     else h += '<div class="tw"><table><thead><tr><th>Title</th><th>' + (key === 'events' ? 'Date' : 'Type') + '</th><th>Status</th><th>Updated</th><th>Actions</th></tr></thead><tbody>' + rows.map(function (r) {
-      var a = ['<button class="btn o s" data-a="preview" data-id="' + esc(r.id) + '">Preview</button>', '<button class="btn o s" data-a="edit" data-id="' + esc(r.id) + '">Edit</button>'];
-      if (r.status === 'published') a.push('<button class="btn o s" data-a="unpublish" data-id="' + esc(r.id) + '">Unpublish</button>');
-      else a.push('<button class="btn s" data-a="publish" data-id="' + esc(r.id) + '">Publish</button>');
-      if (r.status !== 'archived') a.push('<button class="btn o s" data-a="archive" data-id="' + esc(r.id) + '">Archive</button>');
-      a.push('<button class="btn d s" data-a="delete" data-id="' + esc(r.id) + '">Delete</button>');
+      var ownEditable = isAdmin() || (key === 'events' && r.created_by === S.session.user.id && ['draft','pending'].indexOf(r.status) >= 0);
+      var a = ['<button class="btn o s" data-a="preview" data-id="' + esc(r.id) + '">Preview</button>'];
+      if (ownEditable) a.push('<button class="btn o s" data-a="edit" data-id="' + esc(r.id) + '">Edit</button>');
+      if (isAdmin()) { if (r.status === 'published') a.push('<button class="btn o s" data-a="unpublish" data-id="' + esc(r.id) + '">Unpublish</button>'); else a.push('<button class="btn s" data-a="publish" data-id="' + esc(r.id) + '">Publish</button>'); if (r.status !== 'archived') a.push('<button class="btn o s" data-a="archive" data-id="' + esc(r.id) + '">Archive</button>'); a.push('<button class="btn d s" data-a="delete" data-id="' + esc(r.id) + '">Delete</button>'); }
       var when = key === 'events' ? esc(fmtDate(r.event_date)) + (r.start_time ? '<br><span class="note">' + esc(fmtTime(r.start_time)) + '</span>' : '') + (r.event_date < t0 ? ' <span class="st archived">Past</span>' : '') : esc(r.kind);
       return '<tr><td><b>' + esc(r.title) + '</b>' + (key === 'events' ? '<br><span class="note">' + esc(r.association) + '</span>' : '') + '</td><td>' + when + '</td><td><span class="st ' + esc(r.status) + '">' + esc(CSTAT[r.status] || r.status) + '</span></td><td>' + esc(String(r.updated_at || '').slice(0, 10)) + '</td><td><div class="acts">' + a.join('') + '</div></td></tr>';
     }).join('') + '</tbody></table></div>' + pager(st.page, pages, total);
@@ -614,7 +615,7 @@
     if (o.publish) { var pub = mk('<button class="btn" type="button">Confirm: publish to the website</button>'); pub.onclick = function () { pub.disabled = true; Promise.resolve(o.publish(pub)).catch(function () { pub.disabled = false; }); }; box.appendChild(pub); }
   }
   function contentForm(key, r, pre) {
-    var cfg = CT[key], isNew = !r, d = r || Object.assign({ association: 'ASA Kenya', kind: 'Announcement', status: 'draft' }, pre || {});
+    var cfg = CT[key], isNew = !r, d = r || Object.assign({ association: 'ASA Kenya', category: EVENT_CATEGORIES[0], kind: 'Announcement', status: 'draft' }, pre || {});
     var inner = cfg.fields.map(function (f) {
       var v = d[f.k] == null ? '' : String(d[f.k]); if (f.type === 'time') v = v.slice(0, 5);
       var ctl = f.type === 'textarea' ? '<textarea name="' + f.k + '" rows="7" maxlength="' + f.max + '">' + esc(v) + '</textarea>'
@@ -645,7 +646,7 @@
       if (file) { if (!TYPES[file.type]) return 'Only JPG, PNG, WebP or PDF files can be uploaded.'; if (file.size > MAX) return 'That file is larger than 5 MB.'; }
       return '';
     }
-    function payload(v) { var p = {}; cfg.fields.forEach(function (x) { p[x.k] = v[x.k] === '' && ['start_time', 'end_time', 'venue', 'online_url', 'registration_url'].indexOf(x.k) >= 0 ? null : v[x.k]; }); p.image_url = v.image_url || null; return p; }
+    function payload(v) { var p = {}; cfg.fields.forEach(function (x) { p[x.k] = v[x.k] === '' && ['start_time', 'end_time', 'venue', 'online_url', 'registration_url', 'category'].indexOf(x.k) >= 0 ? null : v[x.k]; }); p.image_url = v.image_url || null; return p; }
     async function persist(v, status, file) {
       var up = await uploadFile(file), p = payload(v); if (up) p.image_url = up; p.status = status;
       if (isNew) { p.created_by = S.session.user.id; await api(function (t) { return DB.insert(cfg.table, p, t); }); }
@@ -665,7 +666,8 @@
     if (d.status === 'published') btn('Save changes', '', function (b) { save('published', b, 'Changes saved.'); });
     else {
       btn('Save draft', 'o', function (b) { save(d.status === 'archived' ? 'archived' : 'draft', b, 'Draft saved.'); });
-      btn('Preview and publish', '', function () {
+      if (key === 'events') btn('Submit for approval', '', function (b) { save('pending', b, 'Event submitted for administrator approval.'); });
+      if (isAdmin()) btn('Preview and publish', '', function () {
         var v = read(), bad = check(v); if (bad) { $('#fe').textContent = bad; return; }
         var file = f.elements.file.files[0];
         contentPreview(key, Object.assign({}, d, payload(v), { status: 'draft', image_url: file ? '' : v.image_url }), {
