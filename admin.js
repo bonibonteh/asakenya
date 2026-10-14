@@ -11,7 +11,7 @@
   var AUD = [['both', 'Students and graduates'], ['students', 'Students only'], ['graduates', 'Graduates only']];
   var STATUS = ['draft', 'pending', 'published', 'archived'];
   var STATUS_LABEL = { draft: 'Draft', pending: 'Awaiting approval', published: 'Published', archived: 'Archived' };
-  var MAX = 5 * 1024 * 1024, TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'application/pdf': 'pdf' };
+  var MAX = 25 * 1024 * 1024, TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'application/pdf': 'pdf' };
 
   var S = { session: null, role: null, page: 0, rows: [], filter: { q: '', status: 'all', cat: 'all', aud: 'all', dl: 'all', sort: 'updated' } };
 
@@ -250,7 +250,7 @@
       '<label>Application link (optional)<input type="url" name="apply_url" maxlength="2000" placeholder="https://" value="' + esc(d.apply_url) + '"><small>Must start with https://</small></label>' +
       '<label>Eligibility (optional)<textarea name="eligibility" rows="2" maxlength="1000">' + esc(d.eligibility) + '</textarea></label>' +
       '<label>Source or contact (optional, shown to staff only)<input name="source" maxlength="300" value="' + esc(d.source) + '"></label>' +
-      '<label>Poster or document<input type="file" name="file" accept="image/jpeg,image/png,image/webp,application/pdf"><small>JPG, PNG, WebP or PDF, up to 5 MB. Or paste a link below.</small></label>' +
+      '<label>Poster or document<input type="file" name="file" accept="image/jpeg,image/png,image/webp,application/pdf"><small>JPG, PNG, WebP or PDF, up to 25 MB. Or paste a link below.</small></label>' +
       '<label>Poster or document link (optional)<input type="url" name="file_url" maxlength="2000" placeholder="https://" value="' + esc(d.file_url) + '"></label>' +
       adminStatus + '<span id="fe" class="m er" role="alert" style="padding:0;color:#B5452A"></span><div class="acts" id="fa"></div></form>'; bindNav();
     var f = $('#of'), fa = $('#fa');
@@ -266,7 +266,7 @@
       if (v.apply_url && !/^https:\/\/[^\s]+$/i.test(v.apply_url)) return 'The application link must start with https://';
       if (v.file_url && !/^https:\/\/[^\s]+$/i.test(v.file_url)) return 'The document link must start with https://';
       var file = f.elements.file.files[0];
-      if (file) { if (!TYPES[file.type]) return 'Only JPG, PNG, WebP or PDF files can be uploaded.'; if (file.size > MAX) return 'That file is larger than 5 MB.'; }
+      if (file) { if (!TYPES[file.type]) return 'Only JPG, PNG, WebP or PDF files can be uploaded.'; if (file.size > MAX) return 'That file is larger than 25 MB.'; }
       return '';
     }
     function payload(v) {
@@ -276,7 +276,7 @@
     async function upload(file) {
       if (!file) return null;
       var path = S.session.user.id + '/' + (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2)) + '.' + TYPES[file.type];
-      await api(function (t) { return DB.request('/storage/v1/object/' + (C.OPPORTUNITY_BUCKET || 'opportunity-files') + '/' + path, { method: 'POST', token: t, body: file, raw: true, timeout: 60000, headers: { 'Content-Type': file.type, 'x-upsert': 'false' } }); });
+      await api(function (t) { return DB.request('/storage/v1/object/' + (C.OPPORTUNITY_BUCKET || 'opportunity-files') + '/' + path, { method: 'POST', token: t, body: file, raw: true, timeout: 180000, headers: { 'Content-Type': file.type, 'x-upsert': 'false' } }); });
       return DB.publicFileUrl(path);
     }
     async function persist(v, status, file) {
