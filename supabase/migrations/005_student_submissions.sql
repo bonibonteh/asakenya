@@ -87,7 +87,7 @@ create policy ss_admin_delete on public.student_submissions
 -- administrators can read (signed links) and delete.
 -- ---------------------------------------------------------------------------
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('student-submissions', 'student-submissions', false, 5242880,
+values ('student-submissions', 'student-submissions', false, 26214400,
         array['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
 on conflict (id) do update
   set public             = false,

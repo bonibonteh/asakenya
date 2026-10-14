@@ -177,10 +177,10 @@ create policy opp_admin_delete on public.opportunities
 -- 3. FILE STORAGE (posters and PDFs)
 --    Public bucket so published posters load on the website. Files are saved under
 --    <uploader-id>/<random-name>, so URLs of unpublished items cannot be guessed.
---    5 MB limit; JPEG, PNG, WebP and PDF only.
+--    25 MB limit; JPEG, PNG, WebP and PDF only.
 -- ---------------------------------------------------------------------------
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('opportunity-files', 'opportunity-files', true, 5242880,
+values ('opportunity-files', 'opportunity-files', true, 26214400,
         array['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
 on conflict (id) do update
   set public             = excluded.public,
