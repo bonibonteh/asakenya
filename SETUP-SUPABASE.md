@@ -35,7 +35,9 @@ select id, 'editor' from auth.users where email = 'OFFICIAL@example.com';
 Roles: **editor** adds and edits their own opportunity drafts and submits them for approval. **admin** approves, publishes, unpublishes, archives and deletes opportunities, manages events and announcements, and sees sign-ups and portfolios. After migration 004, administrators can also manage roles from the dashboard's **Staff and roles** page; the database still checks admin rights on every change, and nobody can change their own role there.
 
 ## 6. Storage (poster and PDF uploads)
-Migration 001 creates the public bucket `opportunity-files` (5 MB limit; JPEG, PNG, WebP and PDF only) and its policies. Check under **Storage**: the bucket should exist. Uploads go to `<user id>/<random name>`. Users can only upload into their own folder.
+
+The website's upload forms accept files up to **25 MB**. This is a larger practical cap, not unlimited storage: your Supabase project's plan-level maximum, total storage quota, bandwidth and request limits still apply. The current browser implementation uses standard Storage uploads (not resumable/TUS uploads), so for files above 6 MB, Supabase recommends resumable uploads for greater reliability on unstable connections. For consistently larger files, integrate the Supabase resumable upload protocol before increasing this cap further.
+Migration 001 creates the public bucket `opportunity-files` (25 MB limit; JPEG, PNG, WebP and PDF only) and its policies. Check under **Storage**: the bucket should exist. Uploads go to `<user id>/<random name>`. Users can only upload into their own folder.
 
 ## 7. Netlify and keys
 This site is plain HTML with no build step, so **Netlify environment variables are not used**. The Supabase URL and the **publishable** key are in `config.js`; that key is designed to be public, and the database rules do the protecting.
