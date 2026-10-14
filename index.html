@@ -8,7 +8,7 @@
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"Architecture Students Association of Kenya","alternateName":"ASA Kenya"}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500..900&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css"></head><body>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""><link rel="stylesheet" href="style.css"><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script></head><body>
 <nav aria-label="Main"><div class="wrap"><a class="logo" href="#home"><img src="images/photo-2.jpg" alt="" width="36" height="36">ASA KENYA</a>
 <button id="mb" aria-expanded="false" aria-controls="lk">Menu</button>
 <div class="links" id="lk" role="tablist"><a href="#home">Home</a><a href="#about">About</a><a href="#network">Network</a><a href="#hub">Student Hub</a><a href="#graduates">Graduates</a><a href="#events">Events</a><a href="#resources">Resources</a><a href="#journal">Journal</a><a href="#partner">Partner</a><a href="#contact">Contact</a><a href="/admin" class="adm">Admin</a></div></div></nav>
@@ -36,8 +36,8 @@
   <div class="wrap network-wrap">
     <header class="network-heading">
       <p class="network-eyebrow"><span></span> ASA KENYA / NATIONAL CONNECTIONS</p>
-      <h2>One network.<br><em>Many possibilities.</em></h2>
-      <p class="sub">A national community of architecture students, university associations and emerging professionals — connected through shared ideas, opportunities and action.</p>
+      <h2>A NETWORK BUILT<br><em>ACROSS KENYA</em></h2>
+      <p class="sub">Connecting architecture students, ideas and opportunities nationwide.</p>
     </header>
     <div class="network-facts" aria-label="Network overview">
       <div><span>Member universities</span><b id="network-count">—</b></div>
@@ -54,12 +54,12 @@
     </div>
     <div class="network-stage">
       <div class="network-stage-head"><div><span class="network-index">01 / GEOGRAPHY & CONNECTIONS</span><h3>Connected across Kenya</h3></div><span class="network-live"><i></i> INTERACTIVE MAP</span></div>
-      <div class="mapgrid"><svg class="k" id="kmap" viewBox="0 0 420 470" role="group" aria-label="Stylised map of Kenya with member associations"></svg>
+      <div class="mapgrid"><div class="k" id="kmap" role="application" aria-label="Interactive map of Kenya with county boundaries and verified university campus markers" tabindex="0"></div>
       <div class="prof" id="prof" aria-live="polite"></div></div>
-      <p class="network-map-note">Select a node to explore an association. Map positions are illustrative; institution locations are shown in each profile.</p>
+      <p class="network-map-note">Campus markers use published coordinates without visual offsets. Select a marker or association card to explore. <span id="network-map-status" role="status" aria-live="polite">Loading county boundaries…</span><br><span class="map-attribution">County boundaries: Survey of Kenya, shared by WWF-Kenya / Ministry of Lands, Directorate of Physical Planning. Terrain: Esri World Hillshade.</span></p>
     </div>
     <section class="network-directory-block" id="network-directory" aria-labelledby="network-directory-title">
-      <div class="network-directory-head"><div><p class="network-index">02 / THE CHAPTERS</p><h3 id="network-directory-title">Meet the associations</h3><p>Different campuses. One national architecture community.</p></div><span class="network-directory-count" id="network-directory-count">MEMBER DIRECTORY</span></div>
+      <div class="network-directory-head"><div><p class="network-index">02 / THE CHAPTERS</p><h3 id="network-directory-title">Meet the associations</h3><p>Different Universities. Same Vision.</p></div><span class="network-directory-count" id="network-directory-count">MEMBER DIRECTORY</span></div>
       <div id="network-directory-cards" class="network-directory-cards" aria-live="polite"></div>
     </section>
     <div id="tq" class="tq"></div>

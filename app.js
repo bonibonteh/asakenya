@@ -16,11 +16,11 @@ const ASSOC_DIRECTORY=[
  {slug:'asa-tum',uni:'Technical University of Mombasa',name:'ASA TUM',web:'',logo:'images/logo-tum.png',active:true}
 ];
 const ASSOCIATIONS=[
- {slug:'asa-tuk',short:'ASA TUK',uni:'Technical University of Kenya',city:'Nairobi town',ll:[36.82,-1.29],off:[-62,-30],pres:'Bonface Oino',contact:'Alex Muthui',phone:'+254 754 224786',links:{Join:'https://asatuk.netlify.app/join',News:'https://asatuk.netlify.app/news',FAQ:'https://asatuk.netlify.app/faq'},social:{Instagram:'https://www.instagram.com/asa_tuk/',TikTok:'https://www.tiktok.com/@asa_tuk',X:'https://x.com/asa_tuk'}},
- {slug:'asa-uon',short:'ASA UoN',uni:'University of Nairobi',city:'Nairobi',ll:[36.82,-1.29],off:[-70,28],pres:'Mary Thenge',email:'asauonofficial@gmail.com',ig:'@asa_uon'},
- {slug:'asa-ku',short:'ASA KU',uni:'Kenyatta University',city:'Nairobi town',ll:[36.82,-1.29],off:[-10,68],pres:'Hussein Sudi'},
- {slug:'asa-jkuat',short:'ASA JKUAT',uni:'Jomo Kenyatta University of Agriculture and Technology',city:'Kiambu',ll:[36.82,-1.29],off:[62,30],pres:'Joy Kingori',social:{Instagram:'https://www.instagram.com/asajkuat_/',TikTok:'https://www.tiktok.com/@asajkuat_'}},
- {slug:'asa-tum',short:'ASA TUM',uni:'Technical University of Mombasa',city:'Mombasa',ll:[39.67,-4.05],off:[0,0],pres:'Beavan Bwire'}
+ {slug:'asa-tuk',short:'ASATUK',uni:'Technical University of Kenya',city:'Nairobi',ll:[36.823,-1.292],off:[-62,-30],pres:'Bonface Oino',contact:'Alex Muthui',phone:'+254 754 224786',links:{Join:'https://asatuk.netlify.app/join',News:'https://asatuk.netlify.app/news',FAQ:'https://asatuk.netlify.app/faq'},social:{Instagram:'https://www.instagram.com/asa_tuk/',TikTok:'https://www.tiktok.com/@asa_tuk',X:'https://x.com/asa_tuk'}},
+ {slug:'asa-uon',short:'ASAUON',uni:'University of Nairobi',city:'Nairobi',ll:[36.817,-1.279],off:[-70,28],pres:'Mary Thenge',email:'asauonofficial@gmail.com',ig:'@asa_uon'},
+ {slug:'asa-ku',short:'ASA KU',uni:'Kenyatta University',city:'Kahawa, Nairobi',ll:[36.928,-1.180],off:[-10,68],pres:'Hussein Sudi'},
+ {slug:'asa-jkuat',short:'ASAJKUAT',uni:'Jomo Kenyatta University of Agriculture and Technology',city:'Juja',ll:[37.010,-1.091],off:[62,30],pres:'Joy Kingori',social:{Instagram:'https://www.instagram.com/asajkuat_/',TikTok:'https://www.tiktok.com/@asajkuat_'}},
+ {slug:'asa-tum',short:'ASATUM',uni:'Technical University of Mombasa',city:'Mombasa',ll:[39.668,-4.045],off:[0,0],pres:'Beavan Bwire'}
 ].map(a=>{const d=ASSOC_DIRECTORY.find(x=>x.slug==a.slug)||{};return {...a,web:d.active===false?'':d.web||'',logo:d.logo||'',status:'approved'}});
 const EXEC=[['President','Mary Thenge','University of Nairobi','images/exec-mary-thenge.jpg'],['Vice President','Bonface Oino','Technical University of Kenya','images/exec-bonface-oino.jpg'],['Secretary General','Bwire Bevan','Technical University of Mombasa','images/exec-bwire-bevan.jpg'],['Deputy Secretary General','Clara Kamau','Kenyatta University','images/exec-clara-kamau.jpg'],['Treasurer','Laban Ombaso','Technical University of Mombasa','images/exec-laban-ombaso.jpg'],['Welfare Director','Hussein Sudi','Kenyatta University','images/exec-hussein-sudi.jpg'],['Events Director','Joy Too','Technical University of Kenya','images/exec-joy-too.jpg'],['Media Strategist','Sharon Micheni','Jomo Kenyatta University of Agriculture and Technology']];
 const LEG=[['JKUAT University President','Joy Kingori'],['UoN University President','Mary Thenge'],['KU University President','Hussein Sudi'],['TUK University President','Bonface Oino'],['TUM University President','Beavan Bwire']];
@@ -160,28 +160,71 @@ $('#f').onsubmit=async e=>{e.preventDefault();const f=e.target,F=f.elements;let 
  F['_subject'].value='ASA Kenya website: '+F['type'].value+' - '+F['subject'].value.trim();
  btn.disabled=true;btn.setAttribute('aria-busy','true');if(label)label.textContent='Sending your message…';ok.className='form-feedback is-loading';ok.textContent='Sending your message securely…';ok.style.display='block';
  try{const r=await fetch(FORMSPREE_ENDPOINT,{method:'POST',headers:{Accept:'application/json'},body:new FormData(f)});if(r.ok){ok.className='form-feedback is-success';ok.textContent='Thank you — your message has been sent. The ASA Kenya team will be in touch.';f.reset()}else{ok.className='form-feedback is-error';ok.textContent='We couldn’t send your message just now. Please try again, or email contact.asakenya@gmail.com.'}}catch(x){ok.className='form-feedback is-error';ok.textContent='A network issue stopped your message from sending. Please check your connection and try again, or email contact.asakenya@gmail.com.'}finally{btn.disabled=false;btn.removeAttribute('aria-busy');if(label)label.textContent='Send your message';}};
-/* MAP */
-(function(){const hlt=(sl,on)=>{const l=document.querySelector('.cn[data-s="'+sl+'"]');if(l)l.classList.toggle('hl',on)};const P=[[34.0,4.2],[34.6,3.4],[34.9,1.9],[34.2,1.0],[34.4,.4],[34.0,.1],[33.9,-1],[37.6,-3.5],[37.7,-3.1],[39.2,-4.6],[39.8,-3.4],[40.2,-2.7],[40.9,-2.3],[41.5,-1.7],[41,-.9],[41,2.8],[41.9,3.98],[41,3.9],[39.8,3.9],[39,3.9],[38.1,3.6],[36.9,4.4],[35.9,4.6]];
- const X=l=>(l[0]-33.4)*48,Y=l=>(5.3-l[1])*48;let s='';for(let i=0;i<=420;i+=30)s+=`<line class="gr" x1="${i}" y1="0" x2="${i}" y2="470"/><line class="gr" x1="0" y1="${i}" x2="420" y2="${i}"/>`;
- s+=`<polygon class="st" points="${P.map(p=>X(p)+','+Y(p)).join(' ')}"/>`;
- let nodes='',hl='';const HX=215,HY=205;ASSOCIATIONS.forEach((a,i)=>{const cx=X(a.ll),cy=Y(a.ll);const x=cx+a.off[0],y=cy+a.off[1];if(a.off[0]||a.off[1])s+=`<line class="ln" x1="${cx}" y1="${cy}" x2="${x}" y2="${y}"/>`;
- hl+=`<line class="cn" pathLength="1" data-s="${a.slug}" x1="${x}" y1="${y}" x2="${HX}" y2="${HY}" style="transition-delay:${1.6+i*.25}s"/>`;nodes+=`<g class="n" style="transition-delay:${i*.25}s" tabindex="0" role="button" aria-label="${a.short} profile" data-s="${a.slug}"><circle cx="${x}" cy="${y}" r="9"/><text x="${x}" y="${y-15}" text-anchor="middle">${a.short}</text></g>`});
- let hub='';['Students','Associations','Events','Opportunities','Projects','Professionals','Partners'].forEach((n,j)=>{const sx=330,sy=62+j*22;hub+=`<line class="cn" pathLength="1" x1="${HX}" y1="${HY}" x2="${sx}" y2="${sy}" style="transition-delay:${3.8+j*.12}s"/><g class="sd" style="transition-delay:${4.2+j*.12}s"><circle cx="${sx}" cy="${sy}" r="3.5"/><text x="${sx+9}" y="${sy+3}">${n}</text></g>`});
- hub+=`<g class="hub" style="transition-delay:3.4s"><circle cx="${HX}" cy="${HY}" r="15"/><text x="${HX}" y="${HY+31}" text-anchor="middle">ASA KENYA</text></g>`;s+=hl+hub+nodes;
- s+=`<text x="${X([36.82,0])-50}" y="${Y([0,-1.29])-72}" fill="#8EDBA6" font-size="10" font-family="Archivo">Nairobi</text>`;
- $('#kmap').innerHTML=s;{const k=$('#kmap'),go=()=>{k.classList.add('go');setTimeout(()=>k.querySelectorAll('[style*=transition-delay]').forEach(x=>x.style.transitionDelay='0s'),6500)};if(matchMedia('(prefers-reduced-motion:reduce)').matches||!('IntersectionObserver'in window))go();else new IntersectionObserver((e,o)=>{if(e[0].isIntersecting){go();o.disconnect()}},{threshold:.3}).observe(k)}
- const show=slug=>{const a=ASSOCIATIONS.find(x=>x.slug==slug);document.querySelectorAll('.k g.n').forEach(g=>g.classList.toggle('sel',g.dataset.s==slug));
-  $('#prof').innerHTML=`${a.logo?`<img class="plogo" src="${a.logo}" alt="${a.short} logo" width="72" height="72">`:''}<h3>${a.short}</h3><p style="margin:0">${a.uni}</p><dl><dt>City</dt><dd>${a.city}</dd><dt>University president</dt><dd class="${a.pres?'':'tbd'}">${a.pres||'To be confirmed'}</dd><dt>Events</dt><dd>${EVENTS.filter(e=>e.association==a.short).map(e=>e.title).join(', ')||'<span class="tbd">None listed yet</span>'}</dd><dt>Website</dt><dd class="${a.web?'':'tbd'}">${a.web?`<a href="${a.web}" target="_blank" rel="noopener noreferrer">${a.web.replace(/^https?:\/\//,'')}</a>`:'To be provided'}</dd><dt>Social media</dt><dd class="${a.ig||a.social?'':'tbd'}">${a.ig||(a.social?'See links below':'To be provided')}</dd><dt>Contact</dt><dd>${a.contact?`${a.contact}<br><a href="https://wa.me/${a.phone.replace(/\D/g,'')}" target="_blank" rel="noopener noreferrer" aria-label="Chat with ${a.contact} on WhatsApp">${a.phone} (WhatsApp)</a>`:(a.email||'University representatives')}</dd></dl>${a.links?`<div class="tq">${Object.entries(a.links).map(([k,u])=>`<a class="btn o" href="${u}" target="_blank" rel="noopener noreferrer">${a.short}: ${k}</a>`).join("")}</div>`:'<button class="btn o" disabled style="opacity:.5;cursor:not-allowed">Official website: to be confirmed</button>'}${a.social?`<p style="margin:16px 0 0"><b>Follow ${a.short}</b></p><div class="soc">${socHtml(a.social,a.short)}</div>`:''}<p class="note" style="color:#BFE3C9">${a.nm?'Association name and details to be confirmed. ':''}Listed as a member university on the ASA Kenya site.</p>`};
- $('#prof').innerHTML='<h3>Select a node</h3><p>Choose an association on the map to see its profile.</p>';
- document.querySelectorAll('.k g.n').forEach(g=>{g.onclick=()=>show(g.dataset.s);g.onmouseenter=g.onfocus=()=>hlt(g.dataset.s,1);g.onmouseleave=g.onblur=()=>hlt(g.dataset.s,0);g.onkeydown=e=>{if(e.key=='Enter'||e.key==' '){e.preventDefault();show(g.dataset.s)}}});
+/* MAP — authoritative county geometry + hillshade */
+(function(){
+ const mapEl=$('#kmap'),profile=$('#prof'),status=$('#network-map-status');
+ if(!mapEl||!window.L)return;
+ const records=[
+  {slug:'asa-tuk',short:'ASATUK',uni:'Technical University of Kenya',campus:'Main campus, Haile Selassie Avenue, Nairobi',lat:-1.29183,lng:36.82463,colour:'#b05d42',source:'OpenStreetMap / Mapcarta university feature',url:'https://mapcarta.com/W580324784'},
+  {slug:'asa-uon',short:'ASAUON',uni:'University of Nairobi',campus:'Main campus, Nairobi',lat:-1.27974,lng:36.81611,colour:'#466e59',source:'OpenStreetMap / Mapcarta university feature',url:'https://mapcarta.com/W1009835733'},
+  {slug:'asa-jkuat',short:'ASAJKUAT',uni:'Jomo Kenyatta University of Agriculture and Technology',campus:'Main campus, Juja, Kiambu County',lat:-1.09028,lng:37.00861,colour:'#b08a43',source:'Published main-campus coordinates',url:'https://kiwix.drnathanhutchins.com/content/wikipedia_en_all_maxi_2026-02/Jomo_Kenyatta_University_of_Agriculture_and_Technology'},
+  {slug:'asa-tum',short:'ASATUM',uni:'Technical University of Mombasa',campus:'Main campus, Mombasa',lat:-4.0377,lng:39.66901,colour:'#557d9b',source:'OpenStreetMap / Mapcarta university feature',url:'https://mapcarta.com/W419589044'}
+ ];
+ const umbrella={slug:'asakenya',short:'ASAKenya',uni:'Architecture Students Association of Kenya',campus:'National umbrella association',colour:'#263d52',national:true};
+ const bySlug=Object.fromEntries(ASSOCIATIONS.map(a=>[a.slug,a]));
+ const safe=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ let map;
+ try{
+  map=L.map(mapEl,{zoomControl:true,scrollWheelZoom:false,preferCanvas:true,keyboard:true,attributionControl:true}).setView([-0.7,37.5],6);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}',{maxZoom:16,opacity:.43,attribution:'Hillshade © Esri; sources include USGS, NASA, CGIAR and other contributors'}).addTo(map);
+ }catch(err){if(status)status.textContent='The map could not be initialized. Please use the association directory below.';return}
+ const style={color:'#496957',weight:1,opacity:.9,fillColor:'#dce6d9',fillOpacity:.19};
+ const countyUrl='https://wwfke-giscoe.wwfkenya.org/arcgis/rest/services/Basedata_Kenya/KenyaCountyBoundary/FeatureServer/0/query?where=1%3D1&outFields=county&returnGeometry=true&outSR=4326&f=geojson';
+ const markerBySlug={};
+ function profileFor(r){
+  const a=bySlug[r.slug]||{};
+  const logo=a.logo?'<img class="plogo" src="'+safe(a.logo)+'" alt="'+safe(r.short)+' logo" width="72" height="72">':'';
+  const location=r.national?'No campus pin — ASAKenya is the national umbrella body.':r.campus;
+  profile.innerHTML=logo+'<p class="map-profile-kicker">'+(r.national?'NATIONAL UMBRELLA':'VERIFIED CAMPUS LOCATION')+'</p><h3>'+safe(r.short)+'</h3><p class="map-profile-uni">'+safe(r.uni)+'</p><dl><dt>Campus</dt><dd>'+safe(location)+'</dd>'+(r.national?'':'<dt>Coordinates</dt><dd>'+r.lat.toFixed(5)+', '+r.lng.toFixed(5)+'</dd>')+'<dt>University president</dt><dd>'+(a.pres?safe(a.pres):'<span class="tbd">To be confirmed</span>')+'</dd><dt>Events</dt><dd>'+safe(EVENTS.filter(e=>e.association===r.short||e.association===a.short).map(e=>e.title).join(', ')||'None listed yet')+'</dd>'+(r.url?'<dt>Location reference</dt><dd><a href="'+safe(r.url)+'" target="_blank" rel="noopener noreferrer">View campus source ↗</a></dd>':'')+(a.web?'<dt>Website</dt><dd><a href="'+safe(a.web)+'" target="_blank" rel="noopener noreferrer">'+safe(a.web.replace(/^https?:\/\//,''))+'</a></dd>':'')+'</dl><p class="map-profile-note">'+(r.national?'ASAKenya represents the national network and is intentionally not assigned a fabricated geographic point.':'Marker placed at the university campus coordinates shown above; no visual offset is applied.')+'</p>';
+  document.querySelectorAll('.network-association-card').forEach(b=>b.classList.toggle('is-selected',b.dataset.association===r.slug));
+ }
+ function markerIcon(r){return L.divIcon({className:'asa-map-marker-wrap',html:'<span class="asa-map-marker" style="--marker:'+r.colour+'"><span class="asa-map-marker-dot"></span><span class="asa-map-marker-label">'+safe(r.short)+'</span></span>',iconSize:[18,18],iconAnchor:[9,9]})}
+ records.forEach(r=>{
+  const m=L.marker([r.lat,r.lng],{icon:markerIcon(r),title:r.short,alt:r.short+' at '+r.campus,keyboard:true}).addTo(map);
+  m.bindTooltip('<strong>'+safe(r.short)+'</strong><br>'+safe(r.uni),{direction:'top',offset:[0,-10],opacity:.98});
+  m.on('click',()=>profileFor(r));markerBySlug[r.slug]=m;
+ });
+ const connections=records.map(r=>[r.lat,r.lng]);
+ L.polyline(connections,{color:'#557b66',weight:1.5,opacity:.66,dashArray:'3 7',interactive:false}).addTo(map);
+ const bounds=L.latLngBounds(records.map(r=>[r.lat,r.lng]));
+ map.fitBounds(bounds.pad(.17),{padding:[22,22],maxZoom:7});
  const dir=$('#network-directory-cards');
  if(dir){
-   const safe=x=>String(x==null?'':x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-   dir.innerHTML=ASSOCIATIONS.map((a,i)=>'<button type="button" class="network-association-card" data-association="'+safe(a.slug)+'"><span class="card-no">CHAPTER / '+String(i+1).padStart(2,'0')+'</span><span class="card-arrow" aria-hidden="true">↗</span><span class="card-title">'+safe(a.short)+'</span><span class="card-uni">'+safe(a.uni)+' · '+safe(a.city)+'</span></button>').join('');
-   const count=$('#network-count');if(count)count.textContent=String(ASSOCIATIONS.length).padStart(2,'0');
-   const dc=$('#network-directory-count');if(dc)dc.textContent=String(ASSOCIATIONS.length).padStart(2,'0')+' MEMBER ASSOCIATIONS';
-   dir.querySelectorAll('[data-association]').forEach(card=>card.addEventListener('click',()=>{const node=document.querySelector('.k g.n[data-s="'+card.dataset.association+'"]');if(node){node.click();$('#prof').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'nearest'});}}));
+  const all=[...records.map(r=>({...r,...(bySlug[r.slug]||{})})),{...umbrella,...(bySlug['asakenya']||{})}];
+  dir.innerHTML=all.map((r,i)=>'<button type="button" class="network-association-card" data-association="'+safe(r.slug)+'"><span class="card-no">'+(r.national?'NATIONAL NETWORK':'CHAPTER / '+String(i+1).padStart(2,'0'))+'</span><span class="card-arrow" aria-hidden="true">↗</span><span class="association-logo">'+(r.logo?'<img src="'+safe(r.logo)+'" alt="" loading="lazy" width="56" height="56">':'<span aria-hidden="true">'+safe(r.short.slice(0,2))+'</span>')+'</span><span class="card-title">'+safe(r.short)+'</span><span class="card-uni">'+safe(r.uni)+'</span><span class="card-city">'+safe(r.national?'National umbrella body':r.campus)+' <span aria-hidden="true">↗</span></span></button>').join('');
+  dir.querySelectorAll('button').forEach(btn=>btn.addEventListener('click',()=>{
+   const slug=btn.dataset.association;
+   if(slug==='asakenya'){profileFor(umbrella);return}
+   const r=records.find(x=>x.slug===slug);if(r){profileFor(r);map.flyTo([r.lat,r.lng],8,{duration:.65});markerBySlug[slug].openTooltip()}
+   if(matchMedia('(max-width:760px)').matches)mapEl.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'nearest'});
+  }));
+  const count=$('#network-directory-count');if(count)count.textContent='05 ASSOCIATIONS';
  }
+ fetch(countyUrl,{headers:{Accept:'application/geo+json, application/json'}}).then(r=>{if(!r.ok)throw Error('County boundary service returned '+r.status);return r.json()}).then(data=>{
+  if(!data||!Array.isArray(data.features)||!data.features.length)throw Error('County geometry was empty');
+  const counties=L.geoJSON(data,{style:style,onEachFeature:(feature,layer)=>{
+   const name=feature.properties&&(feature.properties.county||feature.properties.County||feature.properties.COUNTY)||'County';
+   layer.bindTooltip(safe(name)+' County',{sticky:true,direction:'auto'});
+  }}).addTo(map);
+  const names=new Set(data.features.map(f=>String(f.properties&&(f.properties.county||f.properties.County||f.properties.COUNTY)||'').trim().toLowerCase()));
+  if(status)status.textContent=data.features.length===47?'47 county boundaries loaded · Survey of Kenya data shared by WWF-Kenya':'County layer loaded ('+data.features.length+' features); expected 47 counties — please verify data service.';
+  if(data.features.length===47)counties.bringToFront();
+ }).catch(err=>{
+  console.error('Kenya county boundary layer failed',err);
+  if(status)status.textContent='County boundaries could not load. Campus markers remain available; please retry the map connection.';
+ });
+ if(status)status.textContent='Loading authentic county boundaries…';
+ profile.innerHTML='<h3>Explore the network</h3><p>Select a campus marker to view its association and verified coordinates. ASAKenya is shown as the national umbrella body, not as a campus pin.</p>';
 })();
 /* STATS */
 const STATS=[{v:ASSOCIATIONS.length,l:'Member universities',ok:true},{v:EXEC.length,l:'Executive council members',ok:true},{l:'Students',ok:false},{l:'Opportunities',ok:false}];
