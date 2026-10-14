@@ -463,3 +463,26 @@ footer{padding:72px 0 36px;background:#092718}footer .wrap>img{width:150px;aspec
 @media(max-width:760px){#network .network-heading h2{font-size:clamp(2.8rem,12.5vw,5rem)}#network .mapgrid{grid-template-columns:minmax(0,1fr)}#network svg.k{max-height:none}#network .network-directory-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}#network .network-association-card{min-height:220px;padding:16px 14px}#network .network-directory-head{align-items:start;gap:16px;flex-direction:column}#network .network-stage{padding:14px;border-radius:18px}}
 @media(max-width:380px){#network .network-directory-cards{grid-template-columns:minmax(0,1fr)}#network .network-association-card{min-height:190px}}
 @media(prefers-reduced-motion:reduce){#network .network-association-card{transition:none}#network .network-association-card:hover{transform:none}}
+
+
+/* Authoritative interactive Kenya map */
+#network #kmap{height:clamp(420px,52vw,680px);min-height:420px;width:100%;overflow:hidden;border:1px solid rgba(23,44,67,.12);border-radius:18px;background:#e9eee7;z-index:0}
+#network .leaflet-container{font:inherit;color:#172c43}
+#network .leaflet-control-attribution{font-size:9px;max-width:75%;background:rgba(250,249,243,.85);color:#53635c}
+#network .leaflet-control-attribution a{color:#315b47}
+#network .leaflet-control-zoom a{color:#263d52}
+#network .asa-map-marker-wrap{background:transparent;border:0}
+#network .asa-map-marker{display:flex;align-items:center;gap:6px;position:relative;white-space:nowrap;transform:translate(-2px,-2px);filter:drop-shadow(0 2px 2px rgba(23,44,67,.2))}
+#network .asa-map-marker-dot{width:13px;height:13px;border:2px solid #fffdf8;border-radius:50%;background:var(--marker);box-shadow:0 0 0 2px rgba(23,44,67,.14);flex:0 0 13px}
+#network .asa-map-marker-label{font:800 10px/1 Archivo,Arial,sans-serif;letter-spacing:.01em;color:#172c43;background:rgba(255,253,248,.95);border:1px solid rgba(23,44,67,.12);border-radius:6px;padding:5px 6px;box-shadow:0 3px 10px rgba(23,44,67,.08)}
+#network .leaflet-marker-icon:focus-visible{outline:3px solid #a85e43;outline-offset:3px;border-radius:6px}
+#network .leaflet-tooltip{border:1px solid rgba(23,44,67,.12);border-radius:8px;box-shadow:0 8px 20px rgba(23,44,67,.12);color:#172c43;background:#fffdf8}
+#network .leaflet-tooltip:before{border-top-color:#fffdf8}
+#network #network-map-status{display:inline-block;margin-top:7px;color:#416c58;font-weight:700}
+#network .map-attribution{font-size:.76rem;color:#66736f}
+#network .map-profile-kicker{font-size:.66rem;letter-spacing:.12em;font-weight:800;color:#557b66!important}
+#network .map-profile-uni{margin:4px 0 18px;font-weight:600}
+#network .map-profile-note{border-top:1px solid rgba(23,44,67,.1);padding-top:14px;font-size:.82rem}
+#network .network-association-card.is-selected{border-color:#416c58;box-shadow:0 0 0 2px rgba(65,108,88,.12),0 14px 30px rgba(23,44,67,.08)}
+@media(max-width:760px){#network #kmap{height:460px;min-height:380px}#network .leaflet-control-attribution{font-size:8px}#network .asa-map-marker-label{font-size:9px;padding:4px 5px}}
+@media(prefers-reduced-motion:reduce){#network .leaflet-pane *{animation:none!important;transition:none!important}}
