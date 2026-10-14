@@ -36,7 +36,7 @@ Roles: **editor** adds and edits their own opportunity drafts and submits them f
 
 ## 6. Storage (poster and PDF uploads)
 
-The website's upload forms accept files up to **25 MB**. This is a larger practical cap, not unlimited storage: your Supabase project's plan-level maximum, total storage quota, bandwidth and request limits still apply. The current browser implementation uses standard Storage uploads (not resumable/TUS uploads), so for files above 6 MB, Supabase recommends resumable uploads for greater reliability on unstable connections. For consistently larger files, integrate the Supabase resumable upload protocol before increasing this cap further.
+The website's upload forms accept files up to **25 MB**. After deploying this change, run migration `009_larger_uploads.sql` in the Supabase SQL Editor to apply the new bucket limit to the live project. This is a larger practical cap, not unlimited storage: your Supabase project's plan-level maximum, total storage quota, bandwidth and request limits still apply. The current browser implementation uses standard Storage uploads (not resumable/TUS uploads), so for files above 6 MB, Supabase recommends resumable uploads for greater reliability on unstable connections. For consistently larger files, integrate the Supabase resumable upload protocol before increasing this cap further.
 Migration 001 creates the public bucket `opportunity-files` (25 MB limit; JPEG, PNG, WebP and PDF only) and its policies. Check under **Storage**: the bucket should exist. Uploads go to `<user id>/<random name>`. Users can only upload into their own folder.
 
 ## 7. Netlify and keys
