@@ -449,7 +449,7 @@
   async function uploadFile(file) {
     if (!file) return null;
     var path = S.session.user.id + '/' + (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2)) + '.' + TYPES[file.type];
-    await api(function (t) { return DB.request('/storage/v1/object/' + (C.OPPORTUNITY_BUCKET || 'opportunity-files') + '/' + path, { method: 'POST', token: t, body: file, raw: true, timeout: 60000, headers: { 'Content-Type': file.type, 'x-upsert': 'false' } }); });
+    await api(function (t) { return DB.request('/storage/v1/object/' + (C.OPPORTUNITY_BUCKET || 'opportunity-files') + '/' + path, { method: 'POST', token: t, body: file, raw: true, timeout: 180000, headers: { 'Content-Type': file.type, 'x-upsert': 'false' } }); });
     return DB.publicFileUrl(path);
   }
 
@@ -625,7 +625,7 @@
       return '<label>' + f.label + ctl + (f.help ? '<small>' + f.help + '</small>' : '') + '</label>';
     }).join('');
     app.innerHTML = nav(key) + '<h2>' + (isNew ? 'Add ' : 'Edit ') + cfg.one + '</h2><form class="f" id="cf" novalidate>' + inner +
-      '<label>Poster or image<input type="file" name="file" accept="image/jpeg,image/png,image/webp,application/pdf"><small>JPG, PNG, WebP or PDF, up to 5 MB. Or paste a link below.</small></label>' +
+      '<label>Poster or image<input type="file" name="file" accept="image/jpeg,image/png,image/webp,application/pdf"><small>JPG, PNG, WebP or PDF, up to 25 MB. Or paste a link below.</small></label>' +
       '<label>Poster or image link (optional)<input type="url" name="image_url" maxlength="2000" placeholder="https://" value="' + esc(d.image_url) + '"></label>' +
       '<span id="fe" class="m er" role="alert" style="padding:0;color:#B5452A"></span><div class="acts" id="fa"></div></form>'; bindNav();
     var f = $('#cf'), fa = $('#fa');
@@ -644,7 +644,7 @@
       } else if (v.body.length < 10) return 'The text needs at least 10 characters.';
       if (v.image_url && !https.test(v.image_url)) return 'The image link must start with https://';
       var file = f.elements.file.files[0];
-      if (file) { if (!TYPES[file.type]) return 'Only JPG, PNG, WebP or PDF files can be uploaded.'; if (file.size > MAX) return 'That file is larger than 5 MB.'; }
+      if (file) { if (!TYPES[file.type]) return 'Only JPG, PNG, WebP or PDF files can be uploaded.'; if (file.size > MAX) return 'That file is larger than 25 MB.'; }
       return '';
     }
     function payload(v) { var p = {}; cfg.fields.forEach(function (x) { p[x.k] = v[x.k] === '' && ['start_time', 'end_time', 'venue', 'online_url', 'registration_url', 'category'].indexOf(x.k) >= 0 ? null : v[x.k]; }); p.image_url = v.image_url || null; return p; }
