@@ -6,7 +6,7 @@
   'use strict';
   var DB = window.ASA_DB, form = document.getElementById('sform');
   if (!form) return;
-  var BUCKET = 'student-submissions', MAX = 5 * 1024 * 1024;
+  var BUCKET = 'student-submissions', MAX = 25 * 1024 * 1024;
   var TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'application/pdf': 'pdf' };
   var EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
   var err = form.querySelector('.err'), ok = form.querySelector('.gok'), btn = form.querySelector('button[type=submit]'), busy = false;
@@ -53,7 +53,7 @@
       need(n.length >= 2, 'Please enter your name.');
       need(EMAIL.test(em) && em.length <= 254, 'Please enter a valid email address.');
       need(uni.length >= 2, 'Please enter your university.');
-      if (file) { need(!!TYPES[file.type], 'Only JPG, PNG, WebP or PDF files can be attached.'); need(file.size > 0 && file.size <= MAX, 'That file is larger than 5 MB.'); }
+      if (file) { need(!!TYPES[file.type], 'Only JPG, PNG, WebP or PDF files can be attached.'); need(file.size > 0 && file.size <= MAX, 'That file is larger than 25 MB.'); }
       need(form.elements.consent.checked, 'Please tick the box to confirm and give your consent.');
       row = { title: t, organisation: o, category: c, description: d, submitter_name: n, submitter_email: em, university: uni, consent: true };
       if (val('location')) row.location = val('location');
@@ -66,7 +66,7 @@
       if (file) {
         var path = uuid() + '/' + safeName(file.name, TYPES[file.type]);
         try {
-          await DB.request('/storage/v1/object/' + BUCKET + '/' + path, { method: 'POST', body: file, raw: true, timeout: 60000, headers: { 'Content-Type': file.type, 'x-upsert': 'false' } });
+          await DB.request('/storage/v1/object/' + BUCKET + '/' + path, { method: 'POST', body: file, raw: true, timeout: 180000, headers: { 'Content-Type': file.type, 'x-upsert': 'false' } });
         } catch (e) { err.textContent = 'The file could not be uploaded, so nothing was sent. ' + friendly(e); return; }
         row.attachment_path = path; row.attachment_name = String(file.name).slice(0, 200); row.attachment_type = file.type; row.attachment_size = file.size;
         btn.textContent = 'Sending...';
