@@ -32,7 +32,7 @@
   function saveSession() { try { if (S.session) sessionStorage.setItem('asa_admin', JSON.stringify(S.session)); else sessionStorage.removeItem('asa_admin'); } catch (e) { } }
   function loadSession() { try { var j = JSON.parse(sessionStorage.getItem('asa_admin') || 'null'); if (j && j.access_token && j.refresh_token) S.session = j; } catch (e) { } }
   function setSession(r) {
-    S.session = { access_token: r.access_token, refresh_token: r.refresh_token, expires_at: r.expires_at || (Math.floor(Date.now() / 1000) + (r.expires_in || 3600)), user: { id: r.user.id, email: r.user.email } };
+    S.session = { access_token: r.access_token, refresh_token: r.refresh_token, expires_at: r.expires_at || (Math.floor(Date.now() / 1000) + (r.expires_in || 3600)), user: { id: r.user.id, email: r.user.email, user_metadata: r.user.user_metadata || {} } };
     saveSession();
   }
   async function token() {
@@ -88,7 +88,7 @@
       var rows = await api(function (t) { return DB.select('staff_roles', 'select=role&user_id=eq.' + encodeURIComponent(S.session.user.id), t); });
       S.role = rows && rows[0] ? rows[0].role : null;
     } catch (e) { if (!e.handled) { say(fmtErr(e), true); renderLogin(); } return; }
-    $('#who').textContent = S.session.user.email + (S.role ? ' (' + S.role + ')' : '');
+    $('#who').textContent = ((S.session.user.user_metadata && (S.session.user.user_metadata.full_name || S.session.user.user_metadata.name)) || S.session.user.email) + (S.role ? ' (' + S.role + ')' : '');
     $('#out').hidden = false;
     if (!S.role) { app.innerHTML = '<div class="card"><h2>No access yet</h2><p>You are logged in as ' + esc(S.session.user.email) + ', but this account has not been given access. Ask an ASA Kenya administrator to add you, then log in again.</p><p class="note">You will be taken back to the website in a few seconds.</p></div>'; setTimeout(function () { if (!S.role && /^\/admin(\/|$)/.test(location.pathname)) location.href = '/'; }, 6000); return; }
     S.profileName = (S.session.user.user_metadata && (S.session.user.user_metadata.full_name || S.session.user.user_metadata.name)) || '';
