@@ -13,7 +13,7 @@
   var STATUS_LABEL = { draft: 'Draft', pending: 'Awaiting approval', published: 'Published', archived: 'Archived' };
   var MAX = 25 * 1024 * 1024, TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'application/pdf': 'pdf' };
 
-  var S = { session: null, role: null, page: 0, rows: [], filter: { q: '', status: 'all', cat: 'all', aud: 'all', dl: 'all', sort: 'updated' } };
+  var S = { session: null, role: null, profileName: '', preferences: {}, page: 0, rows: [], filter: { q: '', status: 'all', cat: 'all', aud: 'all', dl: 'all', sort: 'updated' } };
 
   function esc(x) { return x == null ? '' : String(x).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function mk(html) { var d = document.createElement('div'); d.innerHTML = html; return d.firstElementChild; }
@@ -91,13 +91,15 @@
     $('#who').textContent = S.session.user.email + (S.role ? ' (' + S.role + ')' : '');
     $('#out').hidden = false;
     if (!S.role) { app.innerHTML = '<div class="card"><h2>No access yet</h2><p>You are logged in as ' + esc(S.session.user.email) + ', but this account has not been given access. Ask an ASA Kenya administrator to add you, then log in again.</p><p class="note">You will be taken back to the website in a few seconds.</p></div>'; setTimeout(function () { if (!S.role && /^\/admin(\/|$)/.test(location.pathname)) location.href = '/'; }, 6000); return; }
+    S.profileName = (S.session.user.user_metadata && (S.session.user.user_metadata.full_name || S.session.user.user_metadata.name)) || '';
+    loadPreferences(); applyPreferences();
     S.admin = S.role === 'admin'; route();
   }
   function isAdmin() { return S.role === 'admin'; }
 
   /* ---------------- routing between views ---------------- */
   function nav(active) {
-    var b = [['home', 'Overview'], ['list', 'Opportunities'], ['new', 'Add opportunity']];
+    var b = [['home', 'Overview'], ['list', 'Opportunities'], ['new', 'Add opportunity'], ['profile', 'My profile'], ['customize', 'Customize dashboard']];
     if (isAdmin()) b.push(['access', 'Access requests']);
     if (isAdmin()) b.push(['subs', 'Student submissions']); b.push(['events', 'Events']); if (isAdmin()) b.push(['news', 'Announcements'], ['people', 'Sign-ups and portfolios'], ['staff', 'Staff and roles']);
     /* The two wrapper divs are closed by the browser at the end of the page fragment. */
@@ -107,13 +109,87 @@
   function go(v, arg) {
     say('');
     if (v === 'home') return viewHome(); if (v === 'list') return viewList(); if (v === 'new') return viewForm(null); if (v === 'edit') return viewForm(arg);
+    if (v === 'profile') return viewProfile(); if (v === 'customize') return viewCustomize();
     if (v === 'people') return viewPeople('interest'); if (v === 'events' || v === 'news') return viewContent(v);
     if (v === 'staff') return viewStaff();
     if (v === 'access') { if (!isAdmin()) { say('Only administrators can review access requests.', true); return viewHome(); } return viewAccessRequests(); }
     if (v === 'subs') return viewSubs();
   }
-  function route() { setPath('/admin'); viewHome(); }
+  function route() { setPath('/admin'); if (S.preferences && S.preferences.startPage === 'list') viewList(); else viewHome(); }
   function setPath(p) { try { if (/^\/admin(\/|$)/.test(location.pathname) && location.pathname.replace(/\/$/, '') !== p) history.replaceState(null, '', p); } catch (e) { } }
+
+  /* ---------------- profile and dashboard preferences ---------------- */
+  function preferenceKey() { return 'asa_admin_preferences_' + (S.session && S.session.user ? S.session.user.id : 'guest'); }
+  function loadPreferences() {
+    var defaults = { theme: 'forest', compact: false, startPage: 'home' };
+    try { S.preferences = Object.assign(defaults, JSON.parse(localStorage.getItem(preferenceKey()) || '{}')); }
+    catch (e) { S.preferences = defaults; }
+    if (['forest', 'ocean', 'slate'].indexOf(S.preferences.theme) < 0) S.preferences.theme = 'forest';
+    if (['home', 'list'].indexOf(S.preferences.startPage) < 0) S.preferences.startPage = 'home';
+  }
+  function applyPreferences() {
+    var p = S.preferences || {};
+    document.body.setAttribute('data-admin-theme', p.theme || 'forest');
+    document.body.classList.toggle('admin-compact', !!p.compact);
+  }
+  function savePreferences() {
+    try { localStorage.setItem(preferenceKey(), JSON.stringify(S.preferences)); applyPreferences(); return true; }
+    catch (e) { say('Could not save preferences in this browser. Check browser storage settings.', true); return false; }
+  }
+  function viewCustomize() {
+    var p = S.preferences || { theme: 'forest', compact: false, startPage: 'home' };
+    app.innerHTML = nav('customize') + '<h2>Customize dashboard</h2><p class="note">Personalize the look and starting page of your ASAKenya workspace. These settings are saved in this browser for your account.</p>' +
+      '<div class="card"><h3>Colour theme</h3><div class="theme-options">' +
+      '<label class="theme-choice"><input type="radio" name="theme" value="forest"' + (p.theme === 'forest' ? ' checked' : '') + '><span class="theme-swatch forest-swatch"></span><b>Forest</b><small>ASAKenya green and warm cream</small></label>' +
+      '<label class="theme-choice"><input type="radio" name="theme" value="ocean"' + (p.theme === 'ocean' ? ' checked' : '') + '><span class="theme-swatch ocean-swatch"></span><b>Ocean</b><small>Deep blue and cool light tones</small></label>' +
+      '<label class="theme-choice"><input type="radio" name="theme" value="slate"' + (p.theme === 'slate' ? ' checked' : '') + '><span class="theme-swatch slate-swatch"></span><b>Slate</b><small>Neutral charcoal and silver</small></label>' +
+      '</div></div><div class="card"><h3>Workspace layout</h3><label class="setting-row"><span><b>Compact layout</b><small>Reduce spacing so more information fits on screen.</small></span><input id="prefCompact" type="checkbox"' + (p.compact ? ' checked' : '') + '></label>' +
+      '<label class="setting-row"><span><b>Starting page</b><small>Choose what opens after you sign in.</small></span><select id="prefStart"><option value="home"' + (p.startPage === 'home' ? ' selected' : '') + '>Overview</option><option value="list"' + (p.startPage === 'list' ? ' selected' : '') + '>Opportunities</option></select></label>' +
+      '<div class="acts" style="margin-top:18px"><button type="button" class="btn" id="savePrefs">Save preferences</button><button type="button" class="btn o" id="resetPrefs">Reset to default</button></div></div>';
+    bindNav();
+    $('#savePrefs').onclick = function () {
+      var theme = app.querySelector('input[name="theme"]:checked');
+      S.preferences = { theme: theme ? theme.value : 'forest', compact: $('#prefCompact').checked, startPage: $('#prefStart').value };
+      if (savePreferences()) say('Dashboard preferences saved.');
+    };
+    $('#resetPrefs').onclick = function () {
+      S.preferences = { theme: 'forest', compact: false, startPage: 'home' };
+      savePreferences(); viewCustomize(); say('Dashboard preferences reset.');
+    };
+  }
+  async function viewProfile() {
+    var u = S.session && S.session.user || {};
+    app.innerHTML = nav('profile') + '<h2>My profile</h2><p class="note">Manage the display name and password for your ASAKenya admin account.</p>' +
+      '<div class="card"><h3>Account details</h3><form id="profileForm" class="f"><label>Display name<input name="full_name" maxlength="100" autocomplete="name" value="' + esc(S.profileName) + '" placeholder="Your full name" required></label>' +
+      '<label>Email address<input value="' + esc(u.email || '') + '" readonly aria-readonly="true"><small>Email is read-only here to protect account recovery and sign-in.</small></label>' +
+      '<label>Role<input value="' + esc(S.role || 'staff') + '" readonly aria-readonly="true"></label><div class="acts"><button class="btn" type="submit">Save profile</button></div></form></div>' +
+      '<div class="card"><h3>Change password</h3><form id="passwordForm" class="f"><label>New password<input type="password" name="password" minlength="8" autocomplete="new-password" required><small>Use at least 8 characters.</small></label><label>Confirm new password<input type="password" name="confirm" minlength="8" autocomplete="new-password" required></label><div class="acts"><button class="btn" type="submit">Update password</button></div></form></div>';
+    bindNav();
+    $('#profileForm').onsubmit = async function (ev) {
+      ev.preventDefault(); var f = ev.target, b = $('button[type="submit"]', f), name = f.full_name.value.trim();
+      if (!name) { say('Enter your display name.', true); return; }
+      b.disabled = true;
+      try {
+        var res = await api(function (t) { return DB.request('/auth/v1/user', { method: 'PUT', token: t, body: { data: { full_name: name, name: name } } }); });
+        S.profileName = name;
+        if (res && res.email) S.session.user.email = res.email;
+        $('#who').textContent = name + ' · ' + S.session.user.email + (S.role ? ' (' + S.role + ')' : '');
+        say('Profile updated.');
+      } catch (e) { if (!e.handled) say(fmtErr(e), true); }
+      finally { b.disabled = false; }
+    };
+    $('#passwordForm').onsubmit = async function (ev) {
+      ev.preventDefault(); var f = ev.target, b = $('button[type="submit"]', f);
+      if (f.password.value.length < 8) { say('Use at least 8 characters.', true); return; }
+      if (f.password.value !== f.confirm.value) { say('The passwords do not match.', true); return; }
+      b.disabled = true;
+      try {
+        await api(function (t) { return DB.request('/auth/v1/user', { method: 'PUT', token: t, body: { password: f.password.value } }); });
+        f.reset(); say('Password updated successfully.');
+      } catch (e) { if (!e.handled) say(fmtErr(e), true); }
+      finally { b.disabled = false; }
+    };
+  }
 
   /* ---------------- list ---------------- */
   async function loadRows() {
