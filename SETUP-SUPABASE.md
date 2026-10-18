@@ -19,6 +19,18 @@ Paste `supabase/tests/rls_checks.sql` (run it after 001, 002 and 003) into the S
 ## 3. Registration and verification
 If you want people to register on the website, switch **Allow new users to sign up** on under **Authentication → Sign In / Providers** and keep **Email** enabled. Configure email confirmation as desired. Only accounts that have verified their email can be approved for staff/editor access. If you want a staff-only site with no public registration, leave public sign-ups off and create accounts manually in step 4.
 
+## 3a. Email delivery and "email rate limit exceeded" (required before public registration)
+Supabase's built-in email service is for testing only. It sends **2 emails per hour for the whole project** and only to addresses that belong to your Supabase organisation team. Every sign-up confirmation and every password reset uses that same allowance, so a few people registering in one hour is enough to produce `email rate limit exceeded`. Supabase also allows one email per user every 60 seconds, and 30 sign-up/recovery requests per IP every 5 minutes.
+The fix is a custom SMTP provider (Resend or Brevo), set up in the Supabase dashboard (this repo never holds SMTP secrets):
+1. At the provider, verify your sending domain (add the SPF and DKIM DNS records it shows) and create an SMTP user/API key.
+2. Supabase dashboard, **Authentication, then Emails (SMTP Settings)**: switch on **Enable custom SMTP**; enter the provider's host, port, username and password; sender address on the verified domain (for example `no-reply@yourdomain`) and sender name `ASAKenya`. Save.
+3. **Authentication, then Rate Limits**: after custom SMTP is on, the default is 30 emails per hour. Raise **Rate limit for sending emails** if you expect more.
+4. **Authentication, then URL Configuration**: Site URL = your live site address; Redirect URLs must include `https://YOUR-SITE/admin` (the registration page asks the confirmation link to return there).
+5. Keep **Confirm email** switched ON. Do not turn it off to get around the limit.
+6. Test with a real address that is not on your team: register, receive the email, click the link, sign in.
+The registration page now shows a clear message when the limit is hit, waits 60 seconds before it allows another try, sends one request per click and never retries on its own. It cannot raise the limit; only the SMTP setup above does.
+New accounts never get council or staff access automatically. After registering and verifying email, an administrator approves them under **Access requests** in the dashboard (editor role only; administrators are never granted from that page).
+
 ## 4. Create staff accounts
 **Authentication, then Users, then Add user, then Create new user.** Enter the email and a password, and tick **Auto Confirm User**. Do this for yourself first, then each official.
 

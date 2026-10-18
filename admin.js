@@ -21,6 +21,7 @@
   function fmtErr(e) {
     if (!e) return 'Something went wrong.';
     if (e.code === 'network') return e.message;
+    if (e.status === 429 || /rate limit|only request this after/i.test(e.message || '')) return 'Too many emails have been requested. Please wait a few minutes before trying again.';
     if (e.status === 401 || /jwt/i.test(e.message || '')) return 'Your session has expired. Please log in again.';
     if (e.status === 403 || /row-level|permission denied/i.test(e.message || '')) return 'You do not have permission to do that.';
     if (e.status === 404) return 'The database tables are not set up yet. Run the SQL migrations first (see SETUP-SUPABASE.md).';
