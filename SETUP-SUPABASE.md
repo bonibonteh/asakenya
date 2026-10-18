@@ -69,7 +69,7 @@ The site does **not** send emails, and says so on the page. The sign-up list rec
 - "Staff management is not switched on yet" on the Staff and roles page: run migration 004 (step 1.5), then reload.
 
 ## The dashboard
-Open `https://asakenya.netlify.app/admin` (it redirects to `/admin/login` when you are signed out). Menu: Overview (statistics and analytics), Opportunities (search, filters, sorting, CSV export), Add opportunity, Events, Announcements, Sign-ups and portfolios, Staff and roles. Events and announcements are administrator-only. The login page is not linked from the public site and is marked noindex.
+Open `/admin` on your site address (it redirects to `/admin/login` when you are signed out). Menu: Overview (statistics and analytics), Opportunities (search, filters, sorting, CSV export), Add opportunity, Events, Announcements, Sign-ups and portfolios, Staff and roles. Events and announcements are administrator-only. The login page is not linked from the public site and is marked noindex.
 What appears on the public site, with no redeploy:
 - Published **opportunities** in the Student Hub and the Graduate Hub finder.
 - Published **events** on the Events page (they sit alongside the events already built into the site).
@@ -82,3 +82,12 @@ Run `supabase/migrations/005_student_submissions.sql` in the SQL Editor (after 0
 - Admin: **Student submissions** in the sidebar. Open a submission, open or download its attachment (short-lived signed link), approve or reject, or "Create opportunity draft" to publish it through Opportunities. Approving alone never publishes.
 - Without migration 005 the admin section shows "not switched on yet" and the public form shows an unavailable message.
 - Category pages still use the contact form (Formspree) for their own "Submit" buttons.
+
+## Deploying on any domain or host
+The site is plain static files with no build step and no hard-coded domain. Every link is relative, and the Supabase address and publishable key come from `config.js`.
+- **Netlify:** `netlify.toml` (and `_redirects`) serve `/admin` from `admin.html`.
+- **Vercel:** `vercel.json` does the same. Leave Root Directory as the repo root and leave Build Command and Output Directory empty.
+- **Cloudflare Pages:** `_redirects` is read automatically. No build command; output directory `/`.
+- **Any other static host** (GitHub Pages, S3, shared hosting): upload the files as they are. If the host cannot rewrite URLs, the dashboard is always available at `/admin.html`.
+- **After moving to a new domain:** in Supabase, set Authentication, then URL Configuration, then Site URL to the new address and add it under Redirect URLs. Password-reset emails use this.
+- The site must sit at the root of its domain (`https://example.org/`), not in a sub-folder.
