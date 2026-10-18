@@ -444,7 +444,7 @@
      checks staff membership and never allows this workflow to grant admin. */
   function accessRequestErr(e) {
     var m = (e && e.message) || '';
-    if (/not_staff/.test(m)) return 'Only an approved editor or administrator can approve access.';
+    if (/not_admin/.test(m)) return 'Only administrators can approve account access.';
     if (/email_not_verified/.test(m)) return 'This email has not been verified yet. Ask the person to confirm their email first.';
     if (/already_staff/.test(m)) return 'This account already has staff access. Reload the list.';
     if (/no_user/.test(m)) return 'No registered account was found for that email.';
@@ -452,7 +452,7 @@
   }
   async function viewAccessRequests() {
     if (!isAdmin()) { say('Only administrators can review access requests.', true); return viewHome(); }
-    app.innerHTML = nav('access') + '<h2>Access requests</h2><p class="note">Review newly registered ASAKenya accounts. Approving grants <b>Editor</b> access only. Email addresses must be verified first; this page cannot grant administrator privileges.</p><p>Loading registered accounts...</p>';
+    app.innerHTML = nav('access') + '<h2>Access requests</h2><p class="note">Review newly registered ASAKenya accounts. This page is available to administrators only. Approving grants <b>Editor</b> access only. Email addresses must be verified first; this page cannot grant administrator privileges.</p><p>Loading registered accounts...</p>';
     bindNav();
     var rows;
     try {
