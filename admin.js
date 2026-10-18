@@ -97,7 +97,8 @@
 
   /* ---------------- routing between views ---------------- */
   function nav(active) {
-    var b = [['home', 'Overview'], ['access', 'Access requests'], ['list', 'Opportunities'], ['new', 'Add opportunity']];
+    var b = [['home', 'Overview'], ['list', 'Opportunities'], ['new', 'Add opportunity']];
+    if (isAdmin()) b.push(['access', 'Access requests']);
     if (isAdmin()) b.push(['subs', 'Student submissions']); b.push(['events', 'Events']); if (isAdmin()) b.push(['news', 'Announcements'], ['people', 'Sign-ups and portfolios'], ['staff', 'Staff and roles']);
     /* The two wrapper divs are closed by the browser at the end of the page fragment. */
     return '<div class="shell"><aside class="side" aria-label="Dashboard menu">' + b.map(function (x) { return '<button type="button" class="' + (x[0] === active ? 'on' : '') + '" data-v="' + x[0] + '"' + (x[0] === active ? ' aria-current="page"' : '') + '>' + x[1] + '</button>'; }).join('') + '</aside><div class="main">';
@@ -108,7 +109,7 @@
     if (v === 'home') return viewHome(); if (v === 'list') return viewList(); if (v === 'new') return viewForm(null); if (v === 'edit') return viewForm(arg);
     if (v === 'people') return viewPeople('interest'); if (v === 'events' || v === 'news') return viewContent(v);
     if (v === 'staff') return viewStaff();
-    if (v === 'access') return viewAccessRequests();
+    if (v === 'access') { if (!isAdmin()) { say('Only administrators can review access requests.', true); return viewHome(); } return viewAccessRequests(); }
     if (v === 'subs') return viewSubs();
   }
   function route() { setPath('/admin'); viewHome(); }
@@ -450,6 +451,7 @@
     return fmtErr(e);
   }
   async function viewAccessRequests() {
+    if (!isAdmin()) { say('Only administrators can review access requests.', true); return viewHome(); }
     app.innerHTML = nav('access') + '<h2>Access requests</h2><p class="note">Review newly registered ASAKenya accounts. Approving grants <b>Editor</b> access only. Email addresses must be verified first; this page cannot grant administrator privileges.</p><p>Loading registered accounts...</p>';
     bindNav();
     var rows;
