@@ -10,13 +10,14 @@ Status: the SQL passed 135 automated checks on a local Postgres, and the admin d
 3. New query: paste `supabase/migrations/002_graduate_hub.sql` and **Run**.
 4. New query: paste `supabase/migrations/003_events_and_announcements.sql` and **Run** (events and announcements for the dashboard).
 5. New query: paste `supabase/migrations/004_staff_management.sql` and **Run** (lets administrators manage staff roles from the dashboard instead of writing SQL).
-Both files can be run again without harm. They create tables with Row Level Security (RLS) switched on, so the public can only read published opportunities and approved portfolios.
+6. New query: paste `supabase/migrations/010_editor_signup_approval.sql` and **Run** (adds the verified-registration approval queue; editors may approve new accounts as editors, but cannot grant admin access).
+These migrations are safe to re-run. They create tables with Row Level Security (RLS) switched on, so the public can only read published opportunities and approved portfolios.
 
 ## 2. Check the security rules (optional, recommended)
 Paste `supabase/tests/rls_checks.sql` (run it after 001, 002 and 003) into the SQL Editor and run it. It makes test users inside a transaction and **always rolls back**, so it leaves no data. The result appears as a red error message beginning "ALL n CHECKS PASSED". That wording is expected. If it says "x OF n CHECKS FAILED", send me the list. (The test file needs the local stub only on a laptop; on Supabase it uses the real `auth` schema. If it complains about test users, skip it and rely on step 9.)
 
-## 3. Turn off public sign-ups
-**Authentication, then Sign In / Providers (or Settings)**: switch **Allow new users to sign up** off. Keep **Email** enabled. This stops strangers creating accounts. Staff accounts are created by you in step 4.
+## 3. Registration and verification
+If you want people to register on the website, switch **Allow new users to sign up** on under **Authentication → Sign In / Providers** and keep **Email** enabled. Configure email confirmation as desired. Only accounts that have verified their email can be approved for staff/editor access. If you want a staff-only site with no public registration, leave public sign-ups off and create accounts manually in step 4.
 
 ## 4. Create staff accounts
 **Authentication, then Users, then Add user, then Create new user.** Enter the email and a password, and tick **Auto Confirm User**. Do this for yourself first, then each official.
@@ -32,7 +33,7 @@ select id, 'admin' from auth.users where email = 'YOUR-EMAIL@example.com';
 insert into public.staff_roles (user_id, role)
 select id, 'editor' from auth.users where email = 'OFFICIAL@example.com';
 ```
-Roles: **editor** adds and edits their own opportunity drafts and submits them for approval. **admin** approves, publishes, unpublishes, archives and deletes opportunities, manages events and announcements, and sees sign-ups and portfolios. After migration 004, administrators can also manage roles from the dashboard's **Staff and roles** page; the database still checks admin rights on every change, and nobody can change their own role there.
+Roles: **editor** adds and edits their own opportunity drafts and submits them for approval. **admin** approves, publishes, unpublishes, archives and deletes opportunities, manages events and announcements, and sees sign-ups and portfolios. After migration 004, administrators can also manage roles from the dashboard's **Staff and roles** page; the database still checks admin rights on every change, and nobody can change their own role there. After migration 010, approved editors and administrators also see **Access requests** and can approve verified new registrations for **editor** access only; the approval flow cannot grant administrator privileges.
 
 ## 6. Storage (poster and PDF uploads)
 
