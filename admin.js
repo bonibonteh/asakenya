@@ -97,7 +97,7 @@
 
   /* ---------------- routing between views ---------------- */
   function nav(active) {
-    var b = [['home', 'Overview'], ['list', 'Opportunities'], ['new', 'Add opportunity']];
+    var b = [['home', 'Overview'], ['access', 'Access requests'], ['list', 'Opportunities'], ['new', 'Add opportunity']];
     if (isAdmin()) b.push(['subs', 'Student submissions']); b.push(['events', 'Events']); if (isAdmin()) b.push(['news', 'Announcements'], ['people', 'Sign-ups and portfolios'], ['staff', 'Staff and roles']);
     /* The two wrapper divs are closed by the browser at the end of the page fragment. */
     return '<div class="shell"><aside class="side" aria-label="Dashboard menu">' + b.map(function (x) { return '<button type="button" class="' + (x[0] === active ? 'on' : '') + '" data-v="' + x[0] + '"' + (x[0] === active ? ' aria-current="page"' : '') + '>' + x[1] + '</button>'; }).join('') + '</aside><div class="main">';
@@ -108,6 +108,7 @@
     if (v === 'home') return viewHome(); if (v === 'list') return viewList(); if (v === 'new') return viewForm(null); if (v === 'edit') return viewForm(arg);
     if (v === 'people') return viewPeople('interest'); if (v === 'events' || v === 'news') return viewContent(v);
     if (v === 'staff') return viewStaff();
+    if (v === 'access') return viewAccessRequests();
     if (v === 'subs') return viewSubs();
   }
   function route() { setPath('/admin'); viewHome(); }
@@ -433,6 +434,56 @@
         b.disabled = true;
         try { await api(function (t) { return DB.rpc('remove_staff', { p_email: b.dataset.rm }, t); }); say('Access removed.'); viewStaff(); }
         catch (e) { if (!e.handled) { say(staffErr(e), true); b.disabled = false; } }
+      };
+    });
+  }
+
+  /* ---------------- registered account access approvals ----------------
+     Staff may approve a verified signup for editor access. The database RPC
+     checks staff membership and never allows this workflow to grant admin. */
+  function accessRequestErr(e) {
+    var m = (e && e.message) || '';
+    if (/not_staff/.test(m)) return 'Only an approved editor or administrator can approve access.';
+    if (/email_not_verified/.test(m)) return 'This email has not been verified yet. Ask the person to confirm their email first.';
+    if (/already_staff/.test(m)) return 'This account already has staff access. Reload the list.';
+    if (/no_user/.test(m)) return 'No registered account was found for that email.';
+    return fmtErr(e);
+  }
+  async function viewAccessRequests() {
+    app.innerHTML = nav('access') + '<h2>Access requests</h2><p class="note">Review newly registered ASAKenya accounts. Approving grants <b>Editor</b> access only. Email addresses must be verified first; this page cannot grant administrator privileges.</p><p>Loading registered accounts...</p>';
+    bindNav();
+    var rows;
+    try {
+      rows = await api(function (t) { return DB.rpc('list_access_requests', {}, t); }) || [];
+    } catch (e) {
+      if (e.handled) return;
+      var missing = e.status === 404 || /PGRST202|not find the function|could not find/i.test(e.message || '');
+      app.innerHTML = nav('access') + '<h2>Access requests</h2><div class="card"><b>' + (missing ? 'Access approvals are not switched on yet.' : 'Could not load registered accounts.') + '</b><p>' + esc(missing ? 'The database approval migration is missing. Run supabase/migrations/010_editor_signup_approval.sql in the Supabase SQL Editor, then reload.' : fmtErr(e)) + '</p></div>';
+      bindNav(); return;
+    }
+    var verified = rows.filter(function (r) { return !!r.email_confirmed_at; }).length;
+    var h = nav('access') + '<h2>Access requests</h2><p class="note">Approving grants Editor access only. Unverified email addresses cannot be approved yet.</p>' +
+      '<div class="stats"><div class="stat"><b>' + rows.length + '</b><span>Accounts awaiting access</span></div><div class="stat"><b>' + verified + '</b><span>Email verified</span></div></div>';
+    if (!rows.length) h += '<div class="card"><b>No new accounts are awaiting access.</b><p>When someone registers and confirms their email, their account will appear here until a staff member approves it.</p></div>';
+    else h += '<div class="tw"><table><thead><tr><th>Name</th><th>Email</th><th>Registered</th><th>Email status</th><th>Action</th></tr></thead><tbody>' +
+      rows.map(function (r) {
+        var ok = !!r.email_confirmed_at;
+        return '<tr><td>' + esc(r.full_name || '—') + '</td><td><b>' + esc(r.email) + '</b></td><td>' + esc(String(r.registered_at || '').slice(0, 10)) + '</td><td><span class="st ' + (ok ? 'published' : 'draft') + '">' + (ok ? 'Verified' : 'Not verified') + '</span></td><td><button type="button" class="btn s" data-approve-email="' + esc(r.email) + '"' + (ok ? '' : ' disabled title="Email must be verified first"') + '>Approve as editor</button></td></tr>';
+      }).join('') + '</tbody></table></div>';
+    app.innerHTML = h; bindNav();
+    app.querySelectorAll('[data-approve-email]').forEach(function (b) {
+      b.onclick = async function () {
+        var email = b.getAttribute('data-approve-email');
+        if (!confirm('Approve ' + email + ' for ASAKenya Editor access? This does not grant administrator privileges.')) return;
+        b.disabled = true;
+        try {
+          await api(function (t) { return DB.rpc('approve_editor_access', { p_email: email }, t); });
+          say('Approved ' + email + ' as an editor.');
+          await viewAccessRequests();
+        } catch (e) {
+          if (!e.handled) say(accessRequestErr(e), true);
+          b.disabled = false;
+        }
       };
     });
   }
