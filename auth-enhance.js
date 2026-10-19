@@ -47,22 +47,7 @@
   function enhanceRegistration() {
     document.querySelectorAll('#asa-register-form input[type="password"]').forEach(addPasswordControl);
   }
-  function addWelcome() {
-    var shell = app.querySelector('.shell');
-    if (!shell || app.querySelector('#asa-welcome-banner')) return;
-    var who = document.getElementById('who');
-    var name = who ? who.textContent : '';
-    name = name.split(' (')[0].trim();
-    var first = name.includes('@') ? name.split('@')[0].replace(/[._-]+/g, ' ') : name;
-    first = first ? first.replace(/\b\w/g, function (c) { return c.toUpperCase(); }) : '';
-    var banner = document.createElement('section');
-    banner.id = 'asa-welcome-banner';
-    banner.setAttribute('role', 'status');
-    banner.style.cssText = 'margin:0 0 22px;padding:22px 24px;border:1px solid #cbdcc9;border-radius:16px;background:linear-gradient(120deg,#edf5e9,#fffdf8);box-shadow:0 8px 24px rgba(16,56,36,.06)';
-    banner.innerHTML = '<p style="margin:0 0 5px;font-size:.75rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#176638">ASAKenya workspace</p><h2 style="margin:0 0 7px;font-size:clamp(1.35rem,3vw,2rem)">Welcome' + (first ? ', ' + esc(first) : '') + '!</h2><p style="margin:0;color:#637267">Good to have you here. Choose an item from the dashboard to get started.</p>';
-    shell.parentNode.insertBefore(banner, shell);
-  }
-  function apply() { enhanceLogin(); enhanceRegistration(); addWelcome(); }
+  function apply() { enhanceLogin(); enhanceRegistration(); }
   if (window.MutationObserver) new MutationObserver(apply).observe(app, { childList: true, subtree: true });
   apply();
 })();
