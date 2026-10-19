@@ -645,9 +645,9 @@
     var avatarCard = meta.avatar_url
       ? '<img src="' + esc(meta.avatar_url) + '" alt="Profile photo" style="width:88px;height:88px;border-radius:50%;object-fit:cover;border:3px solid rgba(255,255,255,.75);flex:0 0 88px">'
       : '<div aria-label="Profile initials" style="width:88px;height:88px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.18);border:3px solid rgba(255,255,255,.55);font-size:28px;font-weight:800;flex:0 0 88px">' + esc(initials) + '</div>';
-    h += '<section class="card" style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:24px;background:linear-gradient(120deg,#174b36,#287653);color:#fff;border:0;border-radius:18px;margin-bottom:24px">' +
-      avatarCard + '<div style="flex:1;min-width:180px"><p style="margin:0 0 6px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;opacity:.85">ASAKenya workspace</p><h2 style="color:#fff;margin:0 0 8px">Welcome back, ' + esc(firstName) + '!</h2><p style="margin:0;opacity:.9">Good to have you here. Keep learning, connecting, and shaping the future of architecture in Kenya.</p></div>' +
-      '<button type="button" class="btn" data-v="profile" style="background:#fff;color:#174b36;border-color:#fff">Edit profile</button></section>';
+    h += '<section class="card" style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:24px;background:var(--card,#fff);color:var(--ink,#19382b);border:1px solid var(--line,#dce6df);border-left:5px solid #287653;border-radius:16px;margin-bottom:24px">' +
+      avatarCard + '<div style="flex:1;min-width:180px"><p style="margin:0 0 6px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#287653;font-weight:700">YOUR ASAKENYA SPACE</p><h2 style="color:var(--ink,#19382b);margin:0 0 8px">Welcome back, ' + esc(firstName) + '!</h2><p style="margin:0;color:var(--muted,#5d6d64)">Your ideas, connections, and next opportunities start here.</p></div>' +
+      '<button type="button" class="btn o" data-v="profile">Edit profile</button></section>';
     if (isAdmin()) {
       var evUp = ev.filter(function (e) { return e.status === 'published' && e.event_date >= t0; }).length;
       var pend = c.pending, pfp = pf.filter(function (p) { return p.status === 'pending'; }).length;
