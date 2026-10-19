@@ -635,13 +635,8 @@
     function stat(n, label, v, tone) { return '<button type="button" class="stat ' + (tone || '') + '" data-v="' + v + '"><b>' + n + '</b><span>' + label + '</span></button>'; }
     var user = S.session && S.session.user || {};
     var meta = user.user_metadata || {};
-    var displayName = meta.full_name || meta.name || S.profileName || (user.email ? user.email.split('@')[0] : 'there');
-    var firstName = displayName.trim().split(/\s+/)[0] || 'there';
-    var avatarUrl = meta.avatar_url || '';
-    var initials = displayName.trim().split(/\s+/).slice(0, 2).map(function (part) { return part.charAt(0); }).join('').toUpperCase() || 'A';
     var motivation = (meta.motivation_message || '').trim() || 'Keep learning, keep designing, and keep showing up. Your next great idea could shape the future of architecture in Kenya.';
-    var avatar = avatarUrl ? '<img src="' + esc(avatarUrl) + '" alt="' + esc(displayName) + ' profile photo" class="welcome-avatar" referrerpolicy="no-referrer" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'"><span class="welcome-initials" style="display:none" aria-hidden="true">' + esc(initials) + '</span>' : '<span class="welcome-initials" aria-hidden="true">' + esc(initials) + '</span>';
-    var h = nav('home') + '<section class="welcome-panel" aria-label="Welcome back"><div class="welcome-person">' + avatar + '<div><h2>Welcome back, ' + esc(firstName) + '!</h2></div></div><button type="button" class="btn o welcome-edit" data-v="profile">Edit profile and message</button></section>';
+    var h = nav('home');
     if (isAdmin()) {
       var evUp = ev.filter(function (e) { return e.status === 'published' && e.event_date >= t0; }).length;
       var pend = c.pending, pfp = pf.filter(function (p) { return p.status === 'pending'; }).length;
