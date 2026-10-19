@@ -168,17 +168,19 @@
       course: meta.course || '',
       study_year: meta.study_year || '',
       phone: meta.phone || '',
-      bio: meta.bio || ''
+      bio: meta.bio || '',
+      motivation_message: meta.motivation_message || ''
     };
-    app.innerHTML = nav('profile') + '<h2>My profile</h2><p class="note">Edit your ASAKenya workspace profile. Your details are saved to your signed-in account and will be available when you sign in again.</p>' +
+    app.innerHTML = nav('profile') + '<h2>My profile</h2><p class="note">Edit your profile photo, personal details, and the motivational message shown on your workspace. Changes are saved to your account.</p>' +
       '<div class="card"><h3>Profile details</h3><form id="profileForm" class="f">' +
       '<label>Full name<input name="full_name" maxlength="120" autocomplete="name" value="' + esc(profile.full_name) + '" placeholder="Your full name" required></label>' +
-      '<label>Profile picture URL<input name="avatar_url" type="url" maxlength="2000" inputmode="url" value="' + esc(profile.avatar_url) + '" placeholder="https://…"><small>Optional. Use a publicly accessible HTTPS image link.</small></label>' +
+      '<label>Profile picture URL<input name="avatar_url" type="url" maxlength="2000" inputmode="url" value="' + esc(profile.avatar_url) + '" placeholder="https://…"><small>Optional. Paste a publicly accessible HTTPS link to your photo.</small></label>' +
       '<label>University / institution<input name="university" maxlength="160" value="' + esc(profile.university) + '" placeholder="Your university or institution"></label>' +
       '<label>Course / programme<input name="course" maxlength="160" value="' + esc(profile.course) + '" placeholder="Architecture, Interior Design, etc."></label>' +
       '<label>Year of study / graduation year<input name="study_year" maxlength="20" value="' + esc(profile.study_year) + '" placeholder="e.g. Year 3 or 2025"></label>' +
       '<label>Phone number<input name="phone" type="tel" maxlength="40" autocomplete="tel" value="' + esc(profile.phone) + '" placeholder="+254…"></label>' +
       '<label>Short bio<textarea name="bio" maxlength="600" rows="4" placeholder="Tell the ASAKenya network a little about yourself">' + esc(profile.bio) + '</textarea><small>Up to 600 characters.</small></label>' +
+      '<label>My workspace motivation<textarea name="motivation_message" maxlength="300" rows="3" placeholder="e.g. Every great building starts with a bold idea.">' + esc(profile.motivation_message) + '</textarea><small>This editable message appears near the bottom of your workspace. Leave blank to use the default encouragement.</small></label>' +
       '<label>Email address<input value="' + esc(u.email || '') + '" readonly aria-readonly="true"><small>Email is read-only here to protect account recovery and sign-in.</small></label>' +
       '<label>Account role<input value="' + esc(S.role || 'staff') + '" readonly aria-readonly="true"></label><div class="acts"><button class="btn" type="submit">Save profile</button></div></form></div>' +
       '<div class="card"><h3>Change password</h3><form id="passwordForm" class="f"><label>New password<input type="password" name="password" minlength="8" autocomplete="new-password" required></label><label>Confirm new password<input type="password" name="confirm" minlength="8" autocomplete="new-password" required></label><div class="acts"><button class="btn" type="submit">Update password</button></div></form></div>';
@@ -193,12 +195,13 @@
       var studyYear = f.study_year.value.trim();
       var phone = f.phone.value.trim();
       var bio = f.bio.value.trim();
+      var motivation = f.motivation_message.value.trim();
       if (name.length < 2) { say('Enter your full name (at least 2 characters).', true); return; }
       if (avatar && (!/^https:\/\//i.test(avatar) || avatar.length > 2000)) { say('Profile picture links must start with https://.', true); return; }
-      if (university.length > 160 || course.length > 160 || studyYear.length > 20 || phone.length > 40 || bio.length > 600) { say('One or more profile fields are too long. Please shorten them and try again.', true); return; }
+      if (university.length > 160 || course.length > 160 || studyYear.length > 20 || phone.length > 40 || bio.length > 600 || motivation.length > 300) { say('One or more profile fields are too long. Please shorten them and try again.', true); return; }
       b.disabled = true;
       try {
-        var data = { full_name: name, name: name, avatar_url: avatar, university: university, course: course, study_year: studyYear, phone: phone, bio: bio };
+        var data = { full_name: name, name: name, avatar_url: avatar, university: university, course: course, study_year: studyYear, phone: phone, bio: bio, motivation_message: motivation };
         var res = await api(function (t) { return DB.request('/auth/v1/user', { method: 'PUT', token: t, body: { data: data } }); });
         S.profileName = name;
         S.session.user.user_metadata = Object.assign({}, S.session.user.user_metadata || {}, data);
@@ -630,7 +633,15 @@
     } catch (e) { if (!e.handled) { app.innerHTML = nav('home') + '<div class="card"><b>Could not load the overview.</b><p>' + esc(fmtErr(e)) + '</p></div>'; bindNav(); } return; }
     var c = counts(), t0 = today(), exp = S.rows.filter(function (r) { return r.status === 'published' && r.deadline && r.deadline < t0; }).length;
     function stat(n, label, v, tone) { return '<button type="button" class="stat ' + (tone || '') + '" data-v="' + v + '"><b>' + n + '</b><span>' + label + '</span></button>'; }
-    var h = nav('home') + '<h2>Overview</h2><p class="note">Signed in as ' + esc(S.session.user.email) + ' (' + esc(S.role) + ').</p>';
+    var user = S.session && S.session.user || {};
+    var meta = user.user_metadata || {};
+    var displayName = meta.full_name || meta.name || S.profileName || (user.email ? user.email.split('@')[0] : 'there');
+    var firstName = displayName.trim().split(/\s+/)[0] || 'there';
+    var avatarUrl = meta.avatar_url || '';
+    var initials = displayName.trim().split(/\s+/).slice(0, 2).map(function (part) { return part.charAt(0); }).join('').toUpperCase() || 'A';
+    var motivation = (meta.motivation_message || '').trim() || 'Keep learning, keep designing, and keep showing up. Your next great idea could shape the future of architecture in Kenya.';
+    var avatar = avatarUrl ? '<img src="' + esc(avatarUrl) + '" alt="' + esc(displayName) + ' profile photo" class="welcome-avatar" referrerpolicy="no-referrer" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'"><span class="welcome-initials" style="display:none" aria-hidden="true">' + esc(initials) + '</span>' : '<span class="welcome-initials" aria-hidden="true">' + esc(initials) + '</span>';
+    var h = nav('home') + '<section class="welcome-panel" aria-label="Welcome back"><div class="welcome-person">' + avatar + '<div><p class="welcome-eyebrow">YOUR ASAKENYA WORKSPACE</p><h2>Welcome back, ' + esc(firstName) + '!</h2><p class="welcome-subtitle">Good to have you here. Let’s make progress on something meaningful today.</p></div></div><button type="button" class="btn o welcome-edit" data-v="profile">Edit profile and message</button></section>';
     if (isAdmin()) {
       var evUp = ev.filter(function (e) { return e.status === 'published' && e.event_date >= t0; }).length;
       var pend = c.pending, pfp = pf.filter(function (p) { return p.status === 'pending'; }).length;
@@ -657,6 +668,7 @@
     } else {
       h += '<p class="note">You can add opportunities and submit them for approval. An administrator publishes them.</p><h3>Your opportunities</h3><div class="stats">' + stat(c.draft, 'Drafts', 'list') + stat(c.pending, 'Awaiting approval', 'list') + stat(c.published, 'Published', 'list') + '</div><p><button type="button" class="btn" data-v="new">Add an opportunity</button></p>';
     }
+    h += '<section class="motivation-panel"><span class="motivation-mark" aria-hidden="true">“</span><div><p class="motivation-label">A NOTE TO KEEP YOU GOING</p><p class="motivation-copy">' + esc(motivation) + '</p><p class="motivation-signoff">Your ideas matter. Keep building.</p></div><button type="button" class="btn o" data-v="profile">Edit message</button></section>';
     app.innerHTML = h; bindNav();
   }
 
