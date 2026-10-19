@@ -174,7 +174,7 @@
     app.innerHTML = nav('profile') + '<h2>My profile</h2><p class="note">Edit your profile photo, personal details, and the motivational message shown on your workspace. Changes are saved to your account.</p>' +
       '<div class="card"><h3>Profile details</h3><form id="profileForm" class="f">' +
       '<label>Full name<input name="full_name" maxlength="120" autocomplete="name" value="' + esc(profile.full_name) + '" placeholder="Your full name" required></label>' +
-      '<label>Profile picture URL<input name="avatar_url" type="url" maxlength="2000" inputmode="url" value="' + esc(profile.avatar_url) + '" placeholder="https://…"><small>Optional. Paste a publicly accessible HTTPS link to your photo.</small></label>' +
+      '<label>Profile photo<input name="avatar_file" type="file" accept="image/jpeg,image/png,image/webp"><small>Choose a JPG, PNG or WebP image from your device (up to 10 MB). Leave empty to keep your current photo.</small></label>' +
       '<label>University / institution<input name="university" maxlength="160" value="' + esc(profile.university) + '" placeholder="Your university or institution"></label>' +
       '<label>Course / programme<input name="course" maxlength="160" value="' + esc(profile.course) + '" placeholder="Architecture, Interior Design, etc."></label>' +
       '<label>Year of study / graduation year<input name="study_year" maxlength="20" value="' + esc(profile.study_year) + '" placeholder="e.g. Year 3 or 2025"></label>' +
@@ -189,7 +189,8 @@
       ev.preventDefault();
       var f = ev.target, b = $('button[type="submit"]', f);
       var name = f.full_name.value.trim();
-      var avatar = f.avatar_url.value.trim();
+      var avatarFile = f.avatar_file.files && f.avatar_file.files[0];
+      var avatar = (S.session.user.user_metadata || {}).avatar_url || '';
       var university = f.university.value.trim();
       var course = f.course.value.trim();
       var studyYear = f.study_year.value.trim();
@@ -197,10 +198,11 @@
       var bio = f.bio.value.trim();
       var motivation = f.motivation_message.value.trim();
       if (name.length < 2) { say('Enter your full name (at least 2 characters).', true); return; }
-      if (avatar && (!/^https:\/\//i.test(avatar) || avatar.length > 2000)) { say('Profile picture links must start with https://.', true); return; }
+      if (avatarFile && (!/^image\/(jpeg|png|webp)$/.test(avatarFile.type) || avatarFile.size > 10 * 1024 * 1024)) { say('Choose a JPG, PNG or WebP image up to 10 MB.', true); return; }
       if (university.length > 160 || course.length > 160 || studyYear.length > 20 || phone.length > 40 || bio.length > 600 || motivation.length > 300) { say('One or more profile fields are too long. Please shorten them and try again.', true); return; }
       b.disabled = true;
       try {
+        if (avatarFile) avatar = await uploadFile(avatarFile);
         var data = { full_name: name, name: name, avatar_url: avatar, university: university, course: course, study_year: studyYear, phone: phone, bio: bio, motivation_message: motivation };
         var res = await api(function (t) { return DB.request('/auth/v1/user', { method: 'PUT', token: t, body: { data: data } }); });
         S.profileName = name;
@@ -637,6 +639,15 @@
     var meta = user.user_metadata || {};
     var motivation = (meta.motivation_message || '').trim() || 'Keep learning, keep designing, and keep showing up. Your next great idea could shape the future of architecture in Kenya.';
     var h = nav('home');
+    var displayName = (meta.full_name || meta.name || S.profileName || (user.email || '').split('@')[0] || 'there').trim();
+    var firstName = displayName.split(/\s+/)[0] || 'there';
+    var initials = displayName.split(/\s+/).slice(0, 2).map(function (part) { return part.charAt(0).toUpperCase(); }).join('') || 'A';
+    var avatarCard = meta.avatar_url
+      ? '<img src="' + esc(meta.avatar_url) + '" alt="Profile photo" style="width:88px;height:88px;border-radius:50%;object-fit:cover;border:3px solid rgba(255,255,255,.75);flex:0 0 88px">'
+      : '<div aria-label="Profile initials" style="width:88px;height:88px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.18);border:3px solid rgba(255,255,255,.55);font-size:28px;font-weight:800;flex:0 0 88px">' + esc(initials) + '</div>';
+    h += '<section class="card" style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:24px;background:linear-gradient(120deg,#174b36,#287653);color:#fff;border:0;border-radius:18px;margin-bottom:24px">' +
+      avatarCard + '<div style="flex:1;min-width:180px"><p style="margin:0 0 6px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;opacity:.85">ASAKenya workspace</p><h2 style="color:#fff;margin:0 0 8px">Welcome back, ' + esc(firstName) + '!</h2><p style="margin:0;opacity:.9">Good to have you here. Keep learning, connecting, and shaping the future of architecture in Kenya.</p></div>' +
+      '<button type="button" class="btn" data-v="profile" style="background:#fff;color:#174b36;border-color:#fff">Edit profile</button></section>';
     if (isAdmin()) {
       var evUp = ev.filter(function (e) { return e.status === 'published' && e.event_date >= t0; }).length;
       var pend = c.pending, pfp = pf.filter(function (p) { return p.status === 'pending'; }).length;
