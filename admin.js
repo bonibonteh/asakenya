@@ -160,22 +160,53 @@
   }
   async function viewProfile() {
     var u = S.session && S.session.user || {};
-    app.innerHTML = nav('profile') + '<h2>My profile</h2><p class="note">Manage the display name and password for your ASAKenya admin account.</p>' +
-      '<div class="card"><h3>Account details</h3><form id="profileForm" class="f"><label>Display name<input name="full_name" maxlength="100" autocomplete="name" value="' + esc(S.profileName) + '" placeholder="Your full name" required></label>' +
+    var meta = u.user_metadata || {};
+    var profile = {
+      full_name: meta.full_name || meta.name || S.profileName || '',
+      avatar_url: meta.avatar_url || '',
+      university: meta.university || '',
+      course: meta.course || '',
+      study_year: meta.study_year || '',
+      phone: meta.phone || '',
+      bio: meta.bio || ''
+    };
+    app.innerHTML = nav('profile') + '<h2>My profile</h2><p class="note">Edit your ASAKenya workspace profile. Your details are saved to your signed-in account and will be available when you sign in again.</p>' +
+      '<div class="card"><h3>Profile details</h3><form id="profileForm" class="f">' +
+      '<label>Full name<input name="full_name" maxlength="120" autocomplete="name" value="' + esc(profile.full_name) + '" placeholder="Your full name" required></label>' +
+      '<label>Profile picture URL<input name="avatar_url" type="url" maxlength="2000" inputmode="url" value="' + esc(profile.avatar_url) + '" placeholder="https://…"><small>Optional. Use a publicly accessible HTTPS image link.</small></label>' +
+      '<label>University / institution<input name="university" maxlength="160" value="' + esc(profile.university) + '" placeholder="Your university or institution"></label>' +
+      '<label>Course / programme<input name="course" maxlength="160" value="' + esc(profile.course) + '" placeholder="Architecture, Interior Design, etc."></label>' +
+      '<label>Year of study / graduation year<input name="study_year" maxlength="20" value="' + esc(profile.study_year) + '" placeholder="e.g. Year 3 or 2025"></label>' +
+      '<label>Phone number<input name="phone" type="tel" maxlength="40" autocomplete="tel" value="' + esc(profile.phone) + '" placeholder="+254…"></label>' +
+      '<label>Short bio<textarea name="bio" maxlength="600" rows="4" placeholder="Tell the ASAKenya network a little about yourself">' + esc(profile.bio) + '</textarea><small>Up to 600 characters.</small></label>' +
       '<label>Email address<input value="' + esc(u.email || '') + '" readonly aria-readonly="true"><small>Email is read-only here to protect account recovery and sign-in.</small></label>' +
-      '<label>Role<input value="' + esc(S.role || 'staff') + '" readonly aria-readonly="true"></label><div class="acts"><button class="btn" type="submit">Save profile</button></div></form></div>' +
-      '<div class="card"><h3>Change password</h3><form id="passwordForm" class="f"><label>New password<input type="password" name="password" minlength="8" autocomplete="new-password" required><small>Use at least 8 characters.</small></label><label>Confirm new password<input type="password" name="confirm" minlength="8" autocomplete="new-password" required></label><div class="acts"><button class="btn" type="submit">Update password</button></div></form></div>';
+      '<label>Account role<input value="' + esc(S.role || 'staff') + '" readonly aria-readonly="true"></label><div class="acts"><button class="btn" type="submit">Save profile</button></div></form></div>' +
+      '<div class="card"><h3>Change password</h3><form id="passwordForm" class="f"><label>New password<input type="password" name="password" minlength="8" autocomplete="new-password" required></label><label>Confirm new password<input type="password" name="confirm" minlength="8" autocomplete="new-password" required></label><div class="acts"><button class="btn" type="submit">Update password</button></div></form></div>';
     bindNav();
     $('#profileForm').onsubmit = async function (ev) {
-      ev.preventDefault(); var f = ev.target, b = $('button[type="submit"]', f), name = f.full_name.value.trim();
-      if (!name) { say('Enter your display name.', true); return; }
+      ev.preventDefault();
+      var f = ev.target, b = $('button[type="submit"]', f);
+      var name = f.full_name.value.trim();
+      var avatar = f.avatar_url.value.trim();
+      var university = f.university.value.trim();
+      var course = f.course.value.trim();
+      var studyYear = f.study_year.value.trim();
+      var phone = f.phone.value.trim();
+      var bio = f.bio.value.trim();
+      if (name.length < 2) { say('Enter your full name (at least 2 characters).', true); return; }
+      if (avatar && (!/^https:\/\//i.test(avatar) || avatar.length > 2000)) { say('Profile picture links must start with https://.', true); return; }
+      if (university.length > 160 || course.length > 160 || studyYear.length > 20 || phone.length > 40 || bio.length > 600) { say('One or more profile fields are too long. Please shorten them and try again.', true); return; }
       b.disabled = true;
       try {
-        var res = await api(function (t) { return DB.request('/auth/v1/user', { method: 'PUT', token: t, body: { data: { full_name: name, name: name } } }); });
+        var data = { full_name: name, name: name, avatar_url: avatar, university: university, course: course, study_year: studyYear, phone: phone, bio: bio };
+        var res = await api(function (t) { return DB.request('/auth/v1/user', { method: 'PUT', token: t, body: { data: data } }); });
         S.profileName = name;
+        S.session.user.user_metadata = Object.assign({}, S.session.user.user_metadata || {}, data);
+        if (res && res.user_metadata) S.session.user.user_metadata = res.user_metadata;
         if (res && res.email) S.session.user.email = res.email;
+        saveSession();
         $('#who').textContent = name + ' · ' + S.session.user.email + (S.role ? ' (' + S.role + ')' : '');
-        say('Profile updated.');
+        say('Your profile has been saved.');
       } catch (e) { if (!e.handled) say(fmtErr(e), true); }
       finally { b.disabled = false; }
     };
