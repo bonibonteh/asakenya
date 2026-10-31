@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>Confirm your email | ASAKenya</title>
+  <link rel="stylesheet" href="../../admin.css">
+  <style>
+    body{min-height:100vh;background:#f7f8f5;display:grid;place-items:center;padding:24px;box-sizing:border-box}
+    .confirm-card{width:min(100%,520px);padding:clamp(24px,5vw,38px)}
+    .confirm-card h1{margin-top:0}.confirm-brand{font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#176638;font-size:.78rem}
+    #confirm-message{line-height:1.65}.confirm-card a{color:#176638;font-weight:700}
+  </style>
+</head>
+<body>
+  <main class="card confirm-card">
+    <p class="confirm-brand">ASAKenya workspace</p>
+    <h1>Email confirmation</h1>
+    <p id="confirm-message" role="status" aria-live="polite">Checking your confirmation link…</p>
+    <p id="confirm-action"></p>
+  </main>
+  <script src="../../config.js"></script>
+  <script src="../../supa.js"></script>
+  <script src="../../auth-confirm.js"></script>
+</body>
+</html>

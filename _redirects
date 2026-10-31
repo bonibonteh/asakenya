@@ -1,3 +1,5 @@
 # Pretty admin URLs for Netlify and Cloudflare Pages (Vercel uses vercel.json)
 /admin      /admin.html  200
 /admin/*    /admin.html  200
+/register    /register.html  200
+/auth/confirm /auth/confirm/index.html 200

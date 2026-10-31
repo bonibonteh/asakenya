@@ -25,9 +25,10 @@ The fix is a custom SMTP provider (Resend or Brevo), set up in the Supabase dash
 1. At the provider, verify your sending domain (add the SPF and DKIM DNS records it shows) and create an SMTP user/API key.
 2. Supabase dashboard, **Authentication, then Emails (SMTP Settings)**: switch on **Enable custom SMTP**; enter the provider's host, port, username and password; sender address on the verified domain (for example `no-reply@yourdomain`) and sender name `ASAKenya`. Save.
 3. **Authentication, then Rate Limits**: after custom SMTP is on, the default is 30 emails per hour. Raise **Rate limit for sending emails** if you expect more.
-4. **Authentication, then URL Configuration**: Site URL = your live site address; Redirect URLs must include `https://YOUR-SITE/admin` (the registration page asks the confirmation link to return there).
+4. **Authentication, then URL Configuration**: Site URL = your live site address; Redirect URLs must include `https://YOUR-SITE/auth/confirm/` (the registration form returns verified users through this callback). For local testing, also allow `http://localhost:8000/auth/confirm/`.
 5. Keep **Confirm email** switched ON. Do not turn it off to get around the limit.
-6. Test with a real address that is not on your team: register, receive the email, click the link, sign in.
+6. Keep the **Confirm signup** email template's link as `{{ .ConfirmationURL }}` so Supabase performs verification and redirects to the callback requested by the registration form. If you use a custom token-hash template instead, link to `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email` (do not hard-code `/admin` or a different domain). The callback accepts both Supabase's normal confirmation redirect and this token-hash format.
+7. Test with a real address that is not on your team: register, receive the email, click the link, and confirm that the browser returns to `/admin`. The account is authenticated after confirmation, but staff access still depends on an administrator assigning a role.
 The registration page now shows a clear message when the limit is hit, waits 60 seconds before it allows another try, sends one request per click and never retries on its own. It cannot raise the limit; only the SMTP setup above does.
 New accounts never get council or staff access automatically. After registering and verifying email, an administrator approves them under **Access requests** in the dashboard (editor role only; administrators are never granted from that page).
 
@@ -63,8 +64,9 @@ Edit `config.js`: put the confirmed BORAQS address in `OFFICIAL_LINKS.BORAQS`. U
 
 ## 9. Test (local, then live)
 Run locally: in the project folder run `python3 -m http.server 8000` and open http://localhost:8000/admin.html. Then repeat on your live site.
-1. **Public site, empty:** Student Hub and `#graduates` show "nothing published yet", with no errors.
-2. **Login:** `/admin.html`. A wrong password shows a message. Your admin login works. Log out works.
+1. **Email confirmation:** register a test account, open the newest confirmation email in the same browser, and confirm that `/auth/confirm/` completes verification and forwards to `/admin` without exposing tokens in the address bar.
+2. **Public site, empty:** Student Hub and `#graduates` show "nothing published yet", with no errors.
+3. **Login:** `/admin.html`. A wrong password shows a message. Your admin login works. Log out works.
 3. **Editor flow:** log in as an editor, add an opportunity with a PDF or image, and **Submit for approval**. Check it is **not** on the public site.
 4. **Admin flow:** log in as admin, open **Awaiting approval**, **Preview**, then **Confirm: publish**. Reload the public site: it appears with no redeploy. **Archive** it: it disappears.
 5. **Editor limits:** the editor sees no Publish or Delete buttons.

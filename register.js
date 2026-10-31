@@ -54,7 +54,7 @@ form.addEventListener('submit',async function(event){
   var result;
   try{
     /* One request only: no automatic retry (a retry would send a second email and count against the email limit). */
-    result=await window.ASA_DB.request('/auth/v1/signup?redirect_to='+encodeURIComponent(location.origin+'/admin'),{method:'POST',body:{email:email,password:password,data:{full_name:name,name:name}}});
+    result=await window.ASA_DB.request('/auth/v1/signup?redirect_to='+encodeURIComponent(location.origin+'/auth/confirm/'),{method:'POST',body:{email:email,password:password,data:{full_name:name,name:name}}});
   }catch(error){
     setBusy(false);
     var kind=classify(error);
@@ -76,6 +76,6 @@ form.addEventListener('submit',async function(event){
   if(!user||!user.id){say('Registration did not go through. Please try again in a few minutes.',false);return;}
   form.reset();
   if(result.access_token){say('Your account has been created. Sign in to continue. Council and staff access stays pending until an administrator approves it.',true);}
-  else{say('Almost done. Check your email for a verification link, then sign in. Council and staff access stays pending until an administrator approves it.',true);}
+  else{say('Almost done. Check your email and open the confirmation link. You will be returned to the ASAKenya workspace; staff access still requires administrator approval.',true);}
 });
 })();

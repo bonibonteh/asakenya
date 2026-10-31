@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/auth/confirm",
+      "destination": "/auth/confirm/index.html"
+    },
+    {
+      "source": "/register",
+      "destination": "/register.html"
+    },
+    {
       "source": "/admin",
       "destination": "/admin.html"
     },
