@@ -1,96 +1,115 @@
-/* ASAKenya email confirmation callback.
-   The current static site uses the Supabase Auth REST API (not supabase-js).
-   Handle the implicit-flow tokens returned by Supabase's ConfirmationURL and
-   token_hash links from a custom email template, then hand the session to admin.js. */
+/* ASAKenya email confirmation callback (/auth/confirm/).
+   The site talks to Supabase Auth over REST (no supabase-js), so sign-up uses the implicit flow, not PKCE.
+   This page accepts every shape Supabase can send back:
+     1. #access_token=...&refresh_token=...&type=signup   (the default {{ .ConfirmationURL }} email link)
+     2. ?token_hash=...&type=email                          (a custom token-hash email template)
+     3. #error=...&error_code=otp_expired                   (expired or already-used link)
+     4. ?code=...                                           (PKCE; explained, because the REST sign-up has no code verifier)
+   It confirms the account, shows a success message and sends the student to the login page.
+   It deliberately does NOT sign the student in: the message says "you can now log in". Tokens are never stored,
+   and are removed from the address bar before any network request. No secret key is used anywhere. */
 (function () {
   'use strict';
+  var title = document.getElementById('confirm-title');
   var message = document.getElementById('confirm-message');
   var action = document.getElementById('confirm-action');
+  var resend = document.getElementById('confirm-resend');
   var DB = window.ASA_DB;
+  var LOGIN = '/admin';
+  var SUCCESS = 'Your email has been verified successfully. You can now log in to ASA Kenya.';
 
-  function show(text, bad) {
+  function show(text, state) {
     message.textContent = text;
-    message.style.color = bad ? '#b42318' : '#176638';
+    message.className = state ? 'confirm-' + state : '';
   }
-  function offerSignIn() {
+  function loginButton(label) {
     action.textContent = '';
-    var link = document.createElement('a');
-    link.href = '/admin';
-    link.textContent = 'Continue to sign in';
-    action.appendChild(link);
+    var a = document.createElement('a');
+    a.href = LOGIN; a.className = 'btn'; a.textContent = label || 'Go to login';
+    a.style.cssText = 'display:inline-block;text-decoration:none;color:#fff';
+    action.appendChild(a);
   }
-  function cleanAddress() {
-    try { history.replaceState(null, document.title, location.pathname); } catch (e) { }
+  function cleanAddress() { try { history.replaceState(null, document.title, location.pathname); } catch (e) { } }
+
+  function explain(code, text) {
+    var s = (String(code || '') + ' ' + String(text || '')).toLowerCase();
+    if (/otp_expired|expired/.test(s)) return { text: 'This confirmation link has expired. Enter your email below and we will send you a new one.', resend: true };
+    if (/access_denied|invalid|used|not found|bad_jwt/.test(s)) return { text: 'This confirmation link is invalid or has already been used. If you already confirmed your email, you can log in. Otherwise request a new link below.', resend: true, login: true };
+    if (/rate|too many/.test(s)) return { text: 'Too many attempts. Please wait a minute and try again.', resend: false, login: true };
+    return { text: 'We could not verify your email. Request a new confirmation link below, or try logging in.', resend: true, login: true };
   }
-  function makeSession(response) {
-    if (!response || !response.access_token || !response.refresh_token) {
-      throw new Error('Supabase did not return a complete sign-in session. Please sign in normally.');
-    }
-    return {
-      access_token: response.access_token,
-      refresh_token: response.refresh_token,
-      expires_at: Number(response.expires_at) || (Math.floor(Date.now() / 1000) + (Number(response.expires_in) || 3600)),
-      user: response.user || null
-    };
+  function fail(code, text) {
+    cleanAddress();
+    var e = explain(code, text);
+    if (title) title.textContent = 'Email not verified';
+    show(e.text, 'error');
+    if (e.login) loginButton('Go to login'); else action.textContent = '';
+    if (e.resend && resend) resend.hidden = false;
+  }
+  function done() {
+    cleanAddress();
+    if (title) title.textContent = 'Email verified';
+    show(SUCCESS, 'ok');
+    loginButton('Log in to ASA Kenya');
+    window.setTimeout(function () { location.replace(LOGIN); }, 4000);
   }
 
   async function complete() {
-    if (!DB || !DB.configured()) throw new Error('The ASAKenya Supabase connection is not configured.');
+    if (!DB || !DB.configured()) throw { code: 'config', message: 'The ASA Kenya connection is not configured. Please contact an administrator.' };
     var url = new URL(location.href);
     var hash = new URLSearchParams(url.hash.replace(/^#/, ''));
     var errorCode = url.searchParams.get('error_code') || hash.get('error_code');
     var errorText = url.searchParams.get('error_description') || hash.get('error_description') || url.searchParams.get('error') || hash.get('error');
-    if (errorCode || errorText) {
-      cleanAddress();
-      throw new Error(errorText || ('Email confirmation failed (' + errorCode + ').'));
-    }
-
-    var session;
     var tokenHash = url.searchParams.get('token_hash');
     var accessToken = hash.get('access_token');
-    var refreshToken = hash.get('refresh_token');
     var authCode = url.searchParams.get('code');
-    cleanAddress(); // remove one-time tokens from the address bar before making any network request
+    cleanAddress(); /* one-time tokens leave the address bar before anything else happens */
+
+    if (errorCode || errorText) throw { code: errorCode || 'error', message: errorText || '' };
+
     if (tokenHash) {
       var type = url.searchParams.get('type') || 'email';
       if (type === 'signup' || type === 'confirmation') type = 'email';
-      var verified = await DB.request('/auth/v1/verify', {
-        method: 'POST',
-        body: { token_hash: tokenHash, type: type }
-      });
-      session = makeSession(verified);
-    } else {
-      if (!accessToken || !refreshToken) {
-        if (authCode) {
-          throw new Error('This link returned a PKCE code, but this static REST sign-up flow has no matching code verifier. Request a fresh confirmation email and use the normal ASAKenya confirmation link.');
-        }
-        throw new Error('This confirmation link is incomplete or has expired. Request a new confirmation email, then open the newest link.');
-      }
-      var expiresIn = Number(hash.get('expires_in')) || 3600;
-      session = {
-        access_token: accessToken,
-        refresh_token: refreshToken,
-        expires_at: Number(hash.get('expires_at')) || (Math.floor(Date.now() / 1000) + expiresIn),
-        user: null
-      };
-      session.user = await DB.request('/auth/v1/user', { token: accessToken });
+      await DB.request('/auth/v1/verify', { method: 'POST', body: { token_hash: tokenHash, type: type } });
+      return;
     }
-
-    if (!session.user) session.user = await DB.request('/auth/v1/user', { token: session.access_token });
-    if (!session.user || !session.user.id) throw new Error('Email verification succeeded, but the account details could not be loaded. Please sign in normally.');
-    try {
-      sessionStorage.setItem('asa_admin', JSON.stringify(session));
-    } catch (e) {
-      throw new Error('Your email is verified, but this browser could not save the sign-in session. Continue to sign in manually.');
+    if (accessToken) {
+      /* Supabase already verified the email before redirecting here. Confirm the token is real, then discard it. */
+      var user = await DB.request('/auth/v1/user', { token: accessToken });
+      if (!user || !user.id) throw { code: 'invalid', message: 'invalid' };
+      return;
     }
-    cleanAddress();
-    show('Your email is confirmed. Opening your ASAKenya workspace…');
-    window.setTimeout(function () { location.replace('/admin'); }, 900);
+    if (authCode) throw { code: 'pkce', message: 'This link used a PKCE code, which the ASA Kenya sign-up form does not use. Request a new confirmation email below and open the newest link.' };
+    throw { code: 'invalid', message: 'This confirmation link is incomplete.' };
   }
 
-  complete().catch(function (error) {
-    cleanAddress();
-    show(error && error.message ? error.message : 'We could not complete email confirmation. Please request a new link or sign in.', true);
-    offerSignIn();
+  complete().then(done).catch(function (err) {
+    if (err && err.code === 'pkce') { cleanAddress(); if (title) title.textContent = 'Email not verified'; show(err.message, 'error'); if (resend) resend.hidden = false; loginButton('Go to login'); return; }
+    if (err && err.code === 'config') { cleanAddress(); show(err.message, 'error'); return; }
+    if (err && err.status === 0) { show('We could not reach the server. Check your connection and reload this page.', 'error'); return; }
+    fail(err && (err.code || err.status), err && err.message);
   });
+
+  /* Resend a confirmation email. One request per click; the answer never reveals whether an address has an account. */
+  var form = document.getElementById('resend-form');
+  if (form && DB) {
+    var busy = false;
+    form.addEventListener('submit', async function (ev) {
+      ev.preventDefault();
+      if (busy) return;
+      var email = form.elements.email.value.trim();
+      var out = document.getElementById('resend-message');
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { out.textContent = 'Please enter a valid email address.'; out.className = 'confirm-error'; return; }
+      busy = true; form.querySelector('button').disabled = true;
+      try {
+        await DB.request('/auth/v1/resend?redirect_to=' + encodeURIComponent(location.origin + '/auth/confirm/'), { method: 'POST', body: { type: 'signup', email: email } });
+        out.textContent = 'If that email has an unconfirmed ASA Kenya account, a new confirmation link is on its way. Open the newest email.';
+        out.className = 'confirm-ok';
+      } catch (e) {
+        out.textContent = (e && (e.status === 429 || /rate|seconds/i.test(e.message || ''))) ? 'Please wait a minute before requesting another email.' : 'We could not send a new link right now. Please try again shortly.';
+        out.className = 'confirm-error';
+      }
+      window.setTimeout(function () { busy = false; form.querySelector('button').disabled = false; }, 60000);
+    });
+  }
 })();
