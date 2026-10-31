@@ -3,4 +3,3 @@
 /admin/*    /admin.html  200
 /register    /register.html  200
 /auth/confirm /auth/confirm/index.html 200
-/auth/confirm/ /auth/confirm/index.html 200

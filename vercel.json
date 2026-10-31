@@ -5,10 +5,6 @@
       "destination": "/auth/confirm/index.html"
     },
     {
-      "source": "/auth/confirm/",
-      "destination": "/auth/confirm/index.html"
-    },
-    {
       "source": "/register",
       "destination": "/register.html"
     },

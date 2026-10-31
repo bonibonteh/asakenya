@@ -67,11 +67,11 @@ Run locally: in the project folder run `python3 -m http.server 8000` and open ht
 1. **Email confirmation:** register a test account, open the newest confirmation email in the same browser, and confirm that `/auth/confirm/` completes verification and forwards to `/admin` without exposing tokens in the address bar.
 2. **Public site, empty:** Student Hub and `#graduates` show "nothing published yet", with no errors.
 3. **Login:** `/admin.html`. A wrong password shows a message. Your admin login works. Log out works.
-3. **Editor flow:** log in as an editor, add an opportunity with a PDF or image, and **Submit for approval**. Check it is **not** on the public site.
-4. **Admin flow:** log in as admin, open **Awaiting approval**, **Preview**, then **Confirm: publish**. Reload the public site: it appears with no redeploy. **Archive** it: it disappears.
-5. **Editor limits:** the editor sees no Publish or Delete buttons.
-6. **Forms:** submit the graduate interest form, the alert opt-in and a portfolio. In admin, open **Sign-ups and portfolios** to see them. Approve the portfolio and see it on the hub.
-7. **Anonymous check:** in a private window, open `YOUR-URL/rest/v1/opportunities?select=*` with only the apikey header (or just trust the SQL test in step 2). The public must not be able to read drafts or `created_by`.
+4. **Editor flow:** log in as an editor, add an opportunity with a PDF or image, and **Submit for approval**. Check it is **not** on the public site.
+5. **Admin flow:** log in as admin, open **Awaiting approval**, **Preview**, then **Confirm: publish**. Reload the public site: it appears with no redeploy. **Archive** it: it disappears.
+6. **Editor limits:** the editor sees no Publish or Delete buttons.
+7. **Forms:** submit the graduate interest form, the alert opt-in and a portfolio. In admin, open **Sign-ups and portfolios** to see them. Approve the portfolio and see it on the hub.
+8. **Anonymous check:** in a private window, open `YOUR-URL/rest/v1/opportunities?select=*` with only the apikey header (or just trust the SQL test in step 2). The public must not be able to read drafts or `created_by`.
 
 ## 10. Email alerts
 The site does **not** send emails, and says so on the page. The sign-up list records interest only. Sending later needs an email service (Supabase Edge Function plus a provider such as Resend); tell me when you want it. Do not announce alerts until that exists.

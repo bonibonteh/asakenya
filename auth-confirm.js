@@ -47,6 +47,10 @@
 
     var session;
     var tokenHash = url.searchParams.get('token_hash');
+    var accessToken = hash.get('access_token');
+    var refreshToken = hash.get('refresh_token');
+    var authCode = url.searchParams.get('code');
+    cleanAddress(); // remove one-time tokens from the address bar before making any network request
     if (tokenHash) {
       var type = url.searchParams.get('type') || 'email';
       if (type === 'signup' || type === 'confirmation') type = 'email';
@@ -56,11 +60,8 @@
       });
       session = makeSession(verified);
     } else {
-      var accessToken = hash.get('access_token');
-      var refreshToken = hash.get('refresh_token');
       if (!accessToken || !refreshToken) {
-        cleanAddress();
-        if (url.searchParams.get('code')) {
+        if (authCode) {
           throw new Error('This link returned a PKCE code, but this static REST sign-up flow has no matching code verifier. Request a fresh confirmation email and use the normal ASAKenya confirmation link.');
         }
         throw new Error('This confirmation link is incomplete or has expired. Request a new confirmation email, then open the newest link.');
@@ -72,7 +73,6 @@
         expires_at: Number(hash.get('expires_at')) || (Math.floor(Date.now() / 1000) + expiresIn),
         user: null
       };
-      cleanAddress();
       session.user = await DB.request('/auth/v1/user', { token: accessToken });
     }
 
