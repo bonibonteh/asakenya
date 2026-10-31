@@ -10,6 +10,12 @@
   status = 200
   force = true
 
+[[redirects]]
+  from = "/auth/confirm/"
+  to = "/auth/confirm/index.html"
+  status = 200
+  force = true
+
 # Pretty admin URLs. /admin and /admin/login both serve the dashboard page.
 [[redirects]]
   from = "/admin"
